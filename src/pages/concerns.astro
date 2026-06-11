@@ -3,7 +3,9 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import ImageCard from "../components/ui/ImageCard.astro";
 import { api } from "../lib/api";
 
-let concerns = [];
+import type { SkinConcern } from "../lib/api";
+
+let concerns: SkinConcern[] = [];
 try {
   const homeData = await api.getHomeContent();
   concerns = homeData.concerns || [];

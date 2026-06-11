@@ -3,11 +3,13 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import ProductCard from "../../components/ui/ProductCard.astro";
 import { api } from "../../lib/api";
 
-let categories = [];
-let brands = [];
-let concerns = [];
-let types = [];
-let initialProducts = [];
+import type { Category, Brand, SkinConcern, SkinType, Product } from "../../lib/api";
+
+let categories: Category[] = [];
+let brands: Brand[] = [];
+let concerns: SkinConcern[] = [];
+let types: SkinType[] = [];
+let initialProducts: Product[] = [];
 let initialTotal = 0;
 let initialTotalPages = 1;
 
@@ -189,7 +191,7 @@ try {
     const mobileToggle = document.getElementById('mobile-filter-toggle');
     const mobileClose = document.getElementById('close-filters-btn');
     
-    const checkboxes = document.querySelectorAll('.filter-checkbox');
+    const checkboxes = document.querySelectorAll<HTMLInputElement>('.filter-checkbox');
     const clearBtn = document.getElementById('clear-filters-btn');
     
     const productsGrid = document.getElementById('plp-products-grid');
@@ -235,7 +237,7 @@ try {
     const urlParams = new URLSearchParams(window.location.search);
     let hasUrlFilters = false;
 
-    checkboxes.forEach((cb: HTMLInputElement) => {
+    checkboxes.forEach((cb) => {
       const name = cb.name;
       const val = cb.value;
       if (urlParams.get(name) === val || urlParams.get(name.replace('_', '-')) === val) {
@@ -254,7 +256,7 @@ try {
     });
 
     clearBtn?.addEventListener('click', () => {
-      checkboxes.forEach((cb: HTMLInputElement) => cb.checked = false);
+      checkboxes.forEach((cb) => cb.checked = false);
       currentPage = 1;
       fetchFilteredProducts(1);
     });
@@ -282,7 +284,7 @@ try {
 
       const filterGroups: Record<string, string[]> = {};
       
-      checkboxes.forEach((cb: HTMLInputElement) => {
+      checkboxes.forEach((cb) => {
         if (cb.checked) {
           const name = cb.name;
           const val = cb.value;

@@ -8,20 +8,22 @@ import SkinTypeCard from "../components/ui/SkinTypeCard.astro";
 import BrandCard from "../components/ui/BrandCard.astro";
 import { api } from "../lib/api";
 
-let heroSliders = [];
-let categories = [];
-let concerns = [];
-let types = [];
-let brands = [];
-let latestProducts = [];
+import type { Slider, Category, SkinConcern, SkinType, Brand, Product } from "../lib/api";
+
+let heroSliders: Slider[] = [];
+let categories: Category[] = [];
+let concerns: SkinConcern[] = [];
+let types: SkinType[] = [];
+let brands: Brand[] = [];
+let latestProducts: Product[] = [];
 let fetchError = false;
 
-let concernProducts = [];
-let selectedConcern = null;
-let skinTypeProducts = [];
-let selectedSkinType = null;
-let brandProducts = [];
-let selectedBrand = null;
+let concernProducts: Product[] = [];
+let selectedConcern: SkinConcern | null = null;
+let skinTypeProducts: Product[] = [];
+let selectedSkinType: SkinType | null = null;
+let brandProducts: Product[] = [];
+let selectedBrand: Brand | null = null;
 
 try {
   const homeData = await api.getHomeContent();
@@ -33,21 +35,27 @@ try {
   latestProducts = await api.getLatestProducts(12);
 
   if (concerns.length > 0) {
-    selectedConcern = concerns.find(c => c.slug === "damaged-skin" || c.slug === "acne") || concerns[0];
-    const data = await api.getProductsBySkinConcern(selectedConcern.slug, 1, 6);
-    concernProducts = data.result || [];
+    selectedConcern = (concerns.find(c => c.slug === "damaged-skin" || c.slug === "acne") || concerns[0]) || null;
+    if (selectedConcern) {
+      const data = await api.getProductsBySkinConcern(selectedConcern.slug, 1, 6);
+      concernProducts = data.result || [];
+    }
   }
 
   if (types.length > 0) {
-    selectedSkinType = types.find(t => t.slug === "oily" || t.slug === "sensitive") || types[0];
-    const data = await api.getProductsBySkinType(selectedSkinType.slug, 1, 6);
-    skinTypeProducts = data.result || [];
+    selectedSkinType = (types.find(t => t.slug === "oily" || t.slug === "sensitive") || types[0]) || null;
+    if (selectedSkinType) {
+      const data = await api.getProductsBySkinType(selectedSkinType.slug, 1, 6);
+      skinTypeProducts = data.result || [];
+    }
   }
 
   if (brands.length > 0) {
-    selectedBrand = brands.find(b => b.slug === "growus" || b.slug === "celimax") || brands[0];
-    const data = await api.getProductsByBrand(selectedBrand.slug, 1, 6);
-    brandProducts = data.result || [];
+    selectedBrand = (brands.find(b => b.slug === "growus" || b.slug === "celimax") || brands[0]) || null;
+    if (selectedBrand) {
+      const data = await api.getProductsByBrand(selectedBrand.slug, 1, 6);
+      brandProducts = data.result || [];
+    }
   }
 } catch (error) {
   console.error("Failed to load storefront home content from backend API:", error);
@@ -114,7 +122,7 @@ try {
   </section>
 
   {/* Section 3a: Curated Concern Suggestions */}
-  {concernProducts.length > 0 && (
+  {selectedConcern && concernProducts.length > 0 && (
     <section class="bg-canvas px-4 md:px-6 py-12 md:py-16 border-t border-hairline-soft">
       <div class="mx-auto" style="max-width: 1536px;">
         <div class="flex items-center justify-between mb-8 md:mb-10">
@@ -142,7 +150,7 @@ try {
   )}
 
   {/* Section 3b: Curated Skin Type Suggestions */}
-  {skinTypeProducts.length > 0 && (
+  {selectedSkinType && skinTypeProducts.length > 0 && (
     <section class="bg-surface-soft px-4 md:px-6 py-12 md:py-16 border-t border-hairline-soft">
       <div class="mx-auto" style="max-width: 1536px;">
         <div class="flex items-center justify-between mb-8 md:mb-10">
@@ -170,7 +178,7 @@ try {
   )}
 
   {/* Section 3c: Curated Brand Suggestions */}
-  {brandProducts.length > 0 && (
+  {selectedBrand && brandProducts.length > 0 && (
     <section class="bg-canvas px-4 md:px-6 py-12 md:py-16 border-t border-hairline-soft">
       <div class="mx-auto" style="max-width: 1536px;">
         <div class="flex items-center justify-between mb-8 md:mb-10">

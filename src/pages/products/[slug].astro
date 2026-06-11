@@ -8,7 +8,7 @@ import { api } from "../../lib/api";
 // 1. Static paths generation for SSG
 export async function getStaticPaths() {
   try {
-    const productsData = await api.getAllProducts(1, 1000);
+    const productsData = await api.getAllProducts(1, 10);
     const list = productsData.result || [];
     return list.map((prod) => ({
       params: { slug: prod.slug },
@@ -21,9 +21,11 @@ export async function getStaticPaths() {
 
 const { slug } = Astro.params;
 
+import type { Product } from "../../lib/api";
+
 // 2. Fetch specific product content
-let product = null;
-let relatedProducts = [];
+let product: Product | null = null;
+let relatedProducts: Product[] = [];
 
 try {
   product = await api.getProductBySlug(slug);

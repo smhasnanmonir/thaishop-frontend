@@ -3,8 +3,10 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import ProductCard from "../../components/ui/ProductCard.astro";
 import { api } from "../../lib/api";
 
+import type { Product } from "../../lib/api";
+
 // Fetch recommendations statically to show if no search matches are found
-let fallbackProducts = [];
+let fallbackProducts: Product[] = [];
 try {
   fallbackProducts = await api.getRandomProducts(4);
 } catch (error) {
