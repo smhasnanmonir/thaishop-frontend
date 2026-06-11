@@ -1,0 +1,214 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { formatPrice } from "../lib/utils";
+---
+
+<BaseLayout
+  title="Your Shopping Bag | TOK Skincare Bangladesh"
+  description="Manage items in your shopping cart before completing checkout."
+>
+  <div class="max-w-[1100px] mx-auto px-6 py-12">
+    <!-- Breadcrumb -->
+    <div class="font-sans text-[12px] text-mute mb-8">
+      <a href="/" class="hover:text-primary transition-colors">Home</a> &bull; <span class="text-ink font-semibold">Shopping Bag</span>
+    </div>
+
+    <h1 class="font-serif text-display-lg font-bold text-ink mb-12">Shopping Bag</h1>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8" id="cart-main-layout" style="display: none;">
+      <!-- Items Column -->
+      <div class="lg:col-span-2 flex flex-col gap-6" id="cart-items-wrapper">
+        <!-- Rendered client-side -->
+      </div>
+
+      <!-- Summary Column -->
+      <div class="bg-surface-card border border-hairline p-6 rounded-none flex flex-col gap-4 h-fit">
+        <h3 class="font-sans text-overline font-bold tracking-overline text-ink uppercase">Order Summary</h3>
+        
+        <div class="flex flex-col gap-3 border-b border-hairline-soft pb-4">
+          <div class="flex justify-between font-sans text-body-md text-body">
+            <span>Items Subtotal</span>
+            <span class="font-serif font-semibold text-ink" id="cart-summary-subtotal">৳0</span>
+          </div>
+          <div class="flex justify-between font-sans text-body-md text-body">
+            <span>Estimated Shipping</span>
+            <span class="font-sans font-semibold text-mute">Calculated at Checkout</span>
+          </div>
+        </div>
+
+        <div class="flex justify-between font-sans text-[18px] font-bold text-ink mb-2">
+          <span>Estimated Total</span>
+          <span class="font-serif text-[22px] text-primary" id="cart-summary-total">৳0</span>
+        </div>
+
+        <a href="/checkout" class="flex items-center justify-center bg-primary text-on-primary font-sans text-[13px] font-bold tracking-[1px] uppercase h-12 rounded-none no-underline transition-colors duration-150 hover:bg-primary-pressed cursor-pointer">
+          Proceed to Checkout
+        </a>
+        
+        <a href="/products" class="font-sans text-[11px] font-bold tracking-[1px] text-mute uppercase text-center py-2 hover:text-ink hover:underline">
+          &larr; Continue Shopping
+        </a>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div class="flex flex-col items-center justify-center p-16 text-center gap-6 border border-dashed border-hairline" id="cart-empty-panel">
+      <div class="text-stone">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <path d="M16 10a4 4 0 0 1-8 0"></path>
+        </svg>
+      </div>
+      <div class="flex flex-col gap-2 max-w-[400px]">
+        <h2 class="font-serif text-heading-xl text-ink">Your Bag is Empty</h2>
+        <p class="font-sans text-body-sm text-mute leading-relaxed">You have not added any skincare items yet. Explore our premium selection directly imported from Bangkok.</p>
+      </div>
+      <a href="/products" class="inline-flex items-center justify-center bg-primary text-on-primary font-sans text-[12px] font-bold tracking-[1px] uppercase h-12 px-8 rounded-none no-underline transition-colors duration-150 hover:bg-primary-pressed">Start Shopping</a>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const mainLayout = document.getElementById('cart-main-layout');
+    const emptyPanel = document.getElementById('cart-empty-panel');
+    const itemsWrapper = document.getElementById('cart-items-wrapper');
+    const subtotalText = document.getElementById('cart-summary-subtotal');
+    const totalText = document.getElementById('cart-summary-total');
+
+    function formatBDT(val: number) {
+      return '৳' + val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+
+    // Listens to cart sync event
+    window.addEventListener('cart-updated', (e: any) => {
+      const items = e.detail || [];
+
+      if (items.length === 0) {
+        if (mainLayout) mainLayout.style.display = 'none';
+        if (emptyPanel) emptyPanel.style.display = 'flex';
+        return;
+      }
+
+      if (mainLayout) mainLayout.style.display = 'grid';
+      if (emptyPanel) emptyPanel.style.display = 'none';
+
+      // Redraw list in the page
+      if (itemsWrapper) {
+        itemsWrapper.innerHTML = '';
+        let subtotal = 0;
+
+        items.forEach((item: any) => {
+          subtotal += item.price * item.quantity;
+          
+          const card = document.createElement('div');
+          // Tailwind CSS v4 classes for checkout cart row
+          card.className = 'flex flex-col sm:flex-row gap-6 p-6 bg-canvas border border-hairline rounded-none items-start sm:items-center justify-between';
+          card.innerHTML = `
+            <div class="flex gap-4 items-center">
+              <div class="w-[70px] h-[93px] shrink-0 overflow-hidden bg-surface-card border border-hairline-soft">
+                <img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <h3 class="font-sans text-[15px] font-semibold text-ink leading-snug line-clamp-2 max-w-[320px]">${item.name}</h3>
+                <span class="font-serif text-[15px] font-bold text-primary">${formatBDT(item.price)}</span>
+              </div>
+            </div>
+            
+            <div class="flex items-center justify-between w-full sm:w-auto gap-8">
+              <!-- Stepper -->
+              <div class="flex items-center border border-hairline rounded-none h-9 bg-surface-soft">
+                <button class="w-9 h-full flex items-center justify-center font-bold text-[14px] text-ink hover:bg-secondary-bg cursor-pointer dec-btn" data-id="${item.productId}">-</button>
+                <span class="w-10 text-center font-sans text-[14px] font-bold">${item.quantity}</span>
+                <button class="w-9 h-full flex items-center justify-center font-bold text-[14px] text-ink hover:bg-secondary-bg cursor-pointer inc-btn" data-id="${item.productId}">+</button>
+              </div>
+
+              <div class="flex items-center gap-6">
+                <span class="font-serif text-[18px] font-bold text-ink w-20 text-right">${formatBDT(item.price * item.quantity)}</span>
+                <button class="text-mute hover:text-error cursor-pointer remove-btn" data-id="${item.productId}" aria-label="Remove item">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          `;
+          itemsWrapper.appendChild(card);
+        });
+
+        if (subtotalText) subtotalText.innerText = formatBDT(subtotal);
+        if (totalText) totalText.innerText = formatBDT(subtotal);
+      }
+    });
+
+    // Event Delegation
+    itemsWrapper?.addEventListener('click', async (e: any) => {
+      const target = e.target.closest('button');
+      if (!target) return;
+
+      const productId = parseInt(target.getAttribute('data-id'));
+      if (isNaN(productId)) return;
+
+      const currentItem = window.tokCartCache?.find((i: any) => i.productId === productId);
+      if (!currentItem) return;
+
+      if (target.classList.contains('inc-btn')) {
+        updateQty(productId, currentItem.quantity + 1);
+      } else if (target.classList.contains('dec-btn')) {
+        updateQty(productId, currentItem.quantity - 1);
+      } else if (target.classList.contains('remove-btn')) {
+        removeItem(productId);
+      }
+    });
+
+    // Helper triggers
+    async function updateQty(productId: number, newQty: number) {
+      try {
+        const res = await fetch('https://backend.tokbd.com/api/guest/cart/update', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            guestId: window.tokGuestId,
+            productId,
+            quantity: newQty
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          window.tokCartCache = data.cart || [];
+          const totalItems = window.tokCartCache.reduce((acc: number, item: any) => acc + item.quantity, 0);
+          window.updateCartBadgeCount(totalItems);
+          window.dispatchEvent(new CustomEvent('cart-updated', { detail: window.tokCartCache }));
+        }
+      } catch (err) {
+        console.error('Error adjusting quantity:', err);
+      }
+    }
+
+    async function removeItem(productId: number) {
+      try {
+        const res = await fetch('https://backend.tokbd.com/api/guest/cart/remove', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            guestId: window.tokGuestId,
+            productId
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          window.tokCartCache = data.cart || [];
+          const totalItems = window.tokCartCache.reduce((acc: number, item: any) => acc + item.quantity, 0);
+          window.updateCartBadgeCount(totalItems);
+          window.dispatchEvent(new CustomEvent('cart-updated', { detail: window.tokCartCache }));
+        }
+      } catch (err) {
+        console.error('Error removing item:', err);
+      }
+    }
+  });
+</script>

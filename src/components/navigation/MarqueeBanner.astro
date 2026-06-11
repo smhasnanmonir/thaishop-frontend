@@ -1,0 +1,42 @@
+---
+// Top-level promotional marquee banner
+---
+
+<div class="bg-primary text-on-primary h-[30px] flex items-center overflow-hidden relative z-[100]">
+  <div class="marquee-content flex whitespace-nowrap font-sans text-[11px] font-bold tracking-[2px] uppercase absolute will-change-transform">
+    <span>BANGKOK BEAUTY FAIR EXCLUSIVE &bull; SAVE 15% WITH CODE: SAWASDEE &bull; THAILAND'S BEST SKINCARE BRANDS NOW IN DHAKA &bull; CASH ON DELIVERY AVAILABLE &bull; </span>
+    <span>BANGKOK BEAUTY FAIR EXCLUSIVE &bull; SAVE 15% WITH CODE: SAWASDEE &bull; THAILAND'S BEST SKINCARE BRANDS NOW IN DHAKA &bull; CASH ON DELIVERY AVAILABLE &bull; </span>
+  </div>
+</div>
+
+<style>
+  .marquee-content {
+    animation: marquee-scroll 20s linear infinite;
+  }
+
+  .marquee-content span {
+    padding-right: 40px;
+    display: inline-block;
+  }
+
+  @keyframes marquee-scroll {
+    0% {
+      transform: translateX(0%);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-content {
+      animation: none;
+      position: static;
+      width: 100%;
+      text-align: center;
+    }
+    .marquee-content span:last-child {
+      display: none;
+    }
+  }
+</style>

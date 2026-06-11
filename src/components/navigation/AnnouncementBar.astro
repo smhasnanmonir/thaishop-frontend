@@ -1,0 +1,42 @@
+---
+// Announcement bar with scrolling/alternating messages
+---
+
+<div class="bg-surface-blush text-ink h-9 flex items-center overflow-hidden relative border-b border-hairline-soft" role="region" aria-label="Announcements">
+  <div class="announcement-content flex whitespace-nowrap font-sans text-[11px] font-bold tracking-[1.5px] uppercase absolute will-change-transform">
+    <span>FREE SHIPPING INSIDE DHAKA ON ORDERS OVER ৳2,000 &bull; 100% AUTHENTIC THAI SKINCARE DIRECT IMPORTS &bull; CASH ON DELIVERY ALL OVER BANGLADESH &bull; </span>
+    <span>FREE SHIPPING INSIDE DHAKA ON ORDERS OVER ৳2,000 &bull; 100% AUTHENTIC THAI SKINCARE DIRECT IMPORTS &bull; CASH ON DELIVERY ALL OVER BANGLADESH &bull; </span>
+  </div>
+</div>
+
+<style>
+  .announcement-content {
+    animation: marquee 25s linear infinite;
+  }
+
+  .announcement-content span {
+    padding-right: 50px;
+    display: inline-block;
+  }
+
+  @keyframes marquee {
+    0% {
+      transform: translateX(0%);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .announcement-content {
+      animation: none;
+      position: static;
+      width: 100%;
+      text-align: center;
+    }
+    .announcement-content span:last-child {
+      display: none;
+    }
+  }
+</style>

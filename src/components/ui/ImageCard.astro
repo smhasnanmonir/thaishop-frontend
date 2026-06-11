@@ -1,0 +1,61 @@
+---
+interface Props {
+  href: string;
+  image: string;
+  alt: string;
+  overline?: string;
+  title: string;
+  cta?: string;
+  aspect?: "square" | "video" | "wide";
+  imageStyle?: string;
+}
+
+const {
+  href,
+  image,
+  alt,
+  overline,
+  title,
+  cta,
+  aspect = "square",
+  imageStyle = "",
+} = Astro.props;
+
+const aspectClasses = {
+  square: "aspect-square",
+  video: "aspect-video",
+  wide: "aspect-[16/10]",
+};
+---
+
+<a
+  href={href}
+  class="group flex flex-col bg-white border border-hairline-soft rounded-none no-underline text-ink"
+>
+  <div class:list={["relative w-full overflow-hidden bg-surface-card", aspectClasses[aspect]]}>
+    <img
+      src={image}
+      alt={alt}
+      class:list={[
+        "absolute inset-0 w-full h-full object-cover",
+        imageStyle,
+      ]}
+      loading="lazy"
+    />
+  </div>
+  <div class="flex flex-col items-center text-center gap-1.5 p-4 md:p-5 min-h-[100px] justify-center">
+    {overline && (
+      <span class="font-sans text-[11px] font-bold tracking-[2px] uppercase text-mute">
+        {overline}
+      </span>
+    )}
+    <h3 class="font-serif text-lg md:text-xl font-bold text-ink leading-tight m-0">
+      {title}
+    </h3>
+    {cta && (
+      <span class="font-sans text-[11px] font-bold tracking-[1px] uppercase text-primary mt-1">
+        {cta}
+      </span>
+    )}
+  </div>
+</a>

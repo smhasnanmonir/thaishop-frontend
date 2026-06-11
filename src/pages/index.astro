@@ -1,0 +1,316 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import HeroCarousel from "../components/features/HeroCarousel.astro";
+import CategoryCard from "../components/ui/CategoryCard.astro";
+import ProductCard from "../components/ui/ProductCard.astro";
+import SkinConcernCard from "../components/ui/SkinConcernCard.astro";
+import SkinTypeCard from "../components/ui/SkinTypeCard.astro";
+import BrandCard from "../components/ui/BrandCard.astro";
+import { api } from "../lib/api";
+
+let heroSliders = [];
+let categories = [];
+let concerns = [];
+let types = [];
+let brands = [];
+let latestProducts = [];
+let fetchError = false;
+
+let concernProducts = [];
+let selectedConcern = null;
+let skinTypeProducts = [];
+let selectedSkinType = null;
+let brandProducts = [];
+let selectedBrand = null;
+
+try {
+  const homeData = await api.getHomeContent();
+  heroSliders = homeData.heroSliders || [];
+  categories = homeData.categories || [];
+  concerns = homeData.concerns || [];
+  types = homeData.types || [];
+  brands = homeData.brands || [];
+  latestProducts = await api.getLatestProducts(12);
+
+  if (concerns.length > 0) {
+    selectedConcern = concerns.find(c => c.slug === "damaged-skin" || c.slug === "acne") || concerns[0];
+    const data = await api.getProductsBySkinConcern(selectedConcern.slug, 1, 6);
+    concernProducts = data.result || [];
+  }
+
+  if (types.length > 0) {
+    selectedSkinType = types.find(t => t.slug === "oily" || t.slug === "sensitive") || types[0];
+    const data = await api.getProductsBySkinType(selectedSkinType.slug, 1, 6);
+    skinTypeProducts = data.result || [];
+  }
+
+  if (brands.length > 0) {
+    selectedBrand = brands.find(b => b.slug === "growus" || b.slug === "celimax") || brands[0];
+    const data = await api.getProductsByBrand(selectedBrand.slug, 1, 6);
+    brandProducts = data.result || [];
+  }
+} catch (error) {
+  console.error("Failed to load storefront home content from backend API:", error);
+  fetchError = true;
+}
+---
+
+<BaseLayout>
+  {/* Hero Carousel */}
+  <div class="mx-auto px-4 md:px-6" style="max-width: 1536px;">
+    <HeroCarousel sliders={heroSliders} />
+  </div>
+
+  {/* Section 1: Categories */}
+  <section class="bg-canvas px-4 md:px-6" style="padding-top: 80px; padding-bottom: 80px;">
+    <div class="mx-auto" style="max-width: 1536px;">
+      <div class="flex flex-col items-center text-center gap-2.5 mb-12 md:mb-16 max-w-2xl mx-auto">
+        <span class="font-sans text-[12px] font-bold tracking-[2.5px] uppercase text-primary leading-none">BROWSE BY TYPE</span>
+        <h2 class="font-serif text-[34px] md:text-[44px] lg:text-[48px] font-bold text-ink leading-tight m-0">Shop Categories</h2>
+      </div>
+
+      {categories.length > 0 ? (
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-5">
+          {categories.slice(0, 6).map(cat => (
+            <CategoryCard category={cat} />
+          ))}
+        </div>
+      ) : (
+        <p class="font-sans text-base text-mute py-8 text-center">Loading categories...</p>
+      )}
+
+      <div class="mt-10 text-center">
+        <a href="/categories" class="font-sans text-xs font-bold tracking-[2px] uppercase text-ink no-underline hover:text-primary transition-colors">
+          View All Categories →
+        </a>
+      </div>
+    </div>
+  </section>
+
+  {/* Section 2: Latest Arrivals */}
+  <section class="bg-surface-soft px-4 md:px-6" style="padding-top: 80px; padding-bottom: 80px;">
+    <div class="mx-auto" style="max-width: 1536px;">
+      <div class="flex flex-col items-center text-center gap-2.5 mb-12 md:mb-16 max-w-2xl mx-auto">
+        <span class="font-sans text-[12px] font-bold tracking-[2.5px] uppercase text-primary leading-none">NEWLY IMPORTED</span>
+        <h2 class="font-serif text-[34px] md:text-[44px] lg:text-[48px] font-bold text-ink leading-tight m-0">Latest Arrivals</h2>
+      </div>
+
+      {latestProducts.length > 0 ? (
+        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-3">
+          {latestProducts.map(prod => (
+            <ProductCard product={prod} />
+          ))}
+        </div>
+      ) : (
+        <p class="font-sans text-base text-mute py-8 text-center">Loading latest products...</p>
+      )}
+
+      <div class="mt-10 text-center">
+        <a href="/products" class="font-sans text-xs font-bold tracking-[2px] uppercase text-ink no-underline hover:text-primary transition-colors">
+          Shop All Products →
+        </a>
+      </div>
+    </div>
+  </section>
+
+  {/* Section 3a: Curated Concern Suggestions */}
+  {concernProducts.length > 0 && (
+    <section class="bg-canvas px-4 md:px-6 py-12 md:py-16 border-t border-hairline-soft">
+      <div class="mx-auto" style="max-width: 1536px;">
+        <div class="flex items-center justify-between mb-8 md:mb-10">
+          <div class="flex items-center gap-3">
+            <div class="w-[5px] h-7 bg-primary rounded-xs"></div>
+            <h2 class="font-serif text-[24px] md:text-[28px] font-bold text-ink m-0">
+              For {selectedConcern.name}
+            </h2>
+          </div>
+          <a href={`/products?skin_concern=${selectedConcern.slug}`} class="view-all-link">
+            <span>View All</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </a>
+        </div>
+        
+        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-3">
+          {concernProducts.map(prod => (
+            <ProductCard product={prod} />
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {/* Section 3b: Curated Skin Type Suggestions */}
+  {skinTypeProducts.length > 0 && (
+    <section class="bg-surface-soft px-4 md:px-6 py-12 md:py-16 border-t border-hairline-soft">
+      <div class="mx-auto" style="max-width: 1536px;">
+        <div class="flex items-center justify-between mb-8 md:mb-10">
+          <div class="flex items-center gap-3">
+            <div class="w-[5px] h-7 bg-primary rounded-xs"></div>
+            <h2 class="font-serif text-[24px] md:text-[28px] font-bold text-ink m-0">
+              For {selectedSkinType.name}
+            </h2>
+          </div>
+          <a href={`/products?skin_type=${selectedSkinType.slug}`} class="view-all-link">
+            <span>View All</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </a>
+        </div>
+        
+        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-3">
+          {skinTypeProducts.map(prod => (
+            <ProductCard product={prod} />
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {/* Section 3c: Curated Brand Suggestions */}
+  {brandProducts.length > 0 && (
+    <section class="bg-canvas px-4 md:px-6 py-12 md:py-16 border-t border-hairline-soft">
+      <div class="mx-auto" style="max-width: 1536px;">
+        <div class="flex items-center justify-between mb-8 md:mb-10">
+          <div class="flex items-center gap-3">
+            <div class="w-[5px] h-7 bg-primary rounded-xs"></div>
+            <h2 class="font-serif text-[24px] md:text-[28px] font-bold text-ink m-0">
+              From {selectedBrand.name}
+            </h2>
+          </div>
+          <a href={`/products?brand=${selectedBrand.slug}`} class="view-all-link">
+            <span>View All</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </a>
+        </div>
+        
+        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-3">
+          {brandProducts.map(prod => (
+            <ProductCard product={prod} />
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {/* Section 4a: Skin Concern Grid */}
+  <section class="bg-surface-soft px-4 md:px-6" style="padding-top: 80px; padding-bottom: 80px;">
+    <div class="mx-auto" style="max-width: 1536px;">
+      <div class="flex flex-col items-center text-center gap-2.5 mb-12 md:mb-16 max-w-2xl mx-auto">
+        <span class="font-sans text-[12px] font-bold tracking-[2.5px] uppercase text-primary leading-none">TARGET SOLUTIONS</span>
+        <h2 class="font-serif text-[34px] md:text-[44px] lg:text-[48px] font-bold text-ink leading-tight m-0">Shop by Skin Concern</h2>
+      </div>
+
+      {concerns.length > 0 ? (
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-5">
+          {concerns.slice(0, 4).map(con => (
+            <SkinConcernCard concern={con} />
+          ))}
+        </div>
+      ) : (
+        <p class="font-sans text-base text-mute py-8 text-center">Loading concerns...</p>
+      )}
+
+      <div class="mt-10 text-center">
+        <a href="/concerns" class="font-sans text-xs font-bold tracking-[2px] uppercase text-ink no-underline hover:text-primary transition-colors">
+          View All Concerns →
+        </a>
+      </div>
+    </div>
+  </section>
+
+  {/* Section 4b: Skin Type Grid */}
+  <section class="bg-canvas px-4 md:px-6" style="padding-top: 80px; padding-bottom: 80px;">
+    <div class="mx-auto" style="max-width: 1536px;">
+      <div class="flex flex-col items-center text-center gap-2.5 mb-12 md:mb-16 max-w-2xl mx-auto">
+        <span class="font-sans text-[12px] font-bold tracking-[2.5px] uppercase text-primary leading-none">DAILY HABITS</span>
+        <h2 class="font-serif text-[34px] md:text-[44px] lg:text-[48px] font-bold text-ink leading-tight m-0">Shop by Skin Type</h2>
+      </div>
+
+      {types.length > 0 ? (
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-5">
+          {types.slice(0, 4).map(tp => (
+            <SkinTypeCard type={tp} />
+          ))}
+        </div>
+      ) : (
+        <p class="font-sans text-base text-mute py-8 text-center">Loading skin types...</p>
+      )}
+
+      <div class="mt-10 text-center">
+        <a href="/skin-types" class="font-sans text-xs font-bold tracking-[2px] uppercase text-ink no-underline hover:text-primary transition-colors">
+          View All Skin Types →
+        </a>
+      </div>
+    </div>
+  </section>
+
+  {/* Section 5: Featured Brands */}
+  <section class="bg-surface-soft px-4 md:px-6" style="padding-top: 80px; padding-bottom: 80px;">
+    <div class="mx-auto" style="max-width: 1536px;">
+      <div class="flex flex-col items-center text-center gap-2.5 mb-12 md:mb-16 max-w-2xl mx-auto">
+        <span class="font-sans text-[12px] font-bold tracking-[2.5px] uppercase text-primary leading-none">BANGKOK SELECTION</span>
+        <h2 class="font-serif text-[34px] md:text-[44px] lg:text-[48px] font-bold text-ink leading-tight m-0">Featured Thai Brands</h2>
+      </div>
+
+      {brands.length > 0 ? (
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {brands.slice(0, 4).map(br => (
+            <BrandCard brand={br} />
+          ))}
+        </div>
+      ) : (
+        <p class="font-sans text-base text-mute py-8 text-center">Loading brands...</p>
+      )}
+
+      <div class="mt-10 text-center">
+        <a href="/brands" class="font-sans text-xs font-bold tracking-[2px] uppercase text-ink no-underline hover:text-primary transition-colors">
+          View All Brands →
+        </a>
+      </div>
+    </div>
+  </section>
+
+  {/* Trust Section */}
+  <section class="bg-canvas px-4 md:px-6" style="padding-top: 100px; padding-bottom: 100px;">
+    <div class="mx-auto text-center" style="max-width: 800px;">
+      <div class="flex flex-col items-center text-center gap-2.5 mb-8 mx-auto max-w-3xl">
+        <span class="font-sans text-[12px] font-bold tracking-[2.5px] uppercase text-primary leading-none">TOK STANDARDS</span>
+        <h2 class="font-serif text-[34px] md:text-[44px] lg:text-[48px] font-bold text-ink leading-tight m-0">Thai Beauty, Imported Responsibly</h2>
+      </div>
+      <p class="font-sans text-lg md:text-xl text-body leading-relaxed m-0">
+        Skincare in Bangladesh is often filled with duplicate cosmetics. At TOK, we buy directly from authorized pharmacies and beauty storefronts in Bangkok. Every bottle, serum, and sunscreen is shipped with strict temperature control, guaranteeing 100% authentic Thai skincare.
+      </p>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .view-all-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    border-radius: 9999px;
+    border: 1px solid var(--color-surface-blush);
+    background-color: var(--color-surface-blush);
+    color: var(--color-primary);
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .view-all-link:hover {
+    background-color: var(--color-primary);
+    color: var(--color-on-primary);
+    border-color: var(--color-primary);
+  }
+</style>

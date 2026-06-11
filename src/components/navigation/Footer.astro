@@ -1,0 +1,87 @@
+---
+---
+
+<footer class="bg-surface-soft border-t border-hairline">
+  <div class="mx-auto" style="max-width: 1536px; padding: 0 24px;">
+    {/* Main Footer Content */}
+    <div class="py-16 md:py-20 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-10">
+      {/* Column 1: Brand Story */}
+      <div class="flex flex-col gap-6">
+        <a href="/" class="flex flex-col leading-none no-underline w-fit">
+          <span class="font-serif text-4xl font-bold tracking-[2px] text-primary">TOK</span>
+          <span class="font-serif text-xs font-semibold tracking-[3px] uppercase text-ink mt-[2px]">Skincare</span>
+        </a>
+        <p class="text-sm text-body leading-relaxed m-0">
+          Authentic Thailand skincare products imported directly to Bangladesh. Providing original, high-quality Thai beauty solutions curated for tropical skin needs.
+        </p>
+        <div class="flex flex-wrap gap-2 mt-1">
+          <span class="text-[10px] font-bold tracking-[1px] border border-hairline px-3 py-1.5 text-ink uppercase">100% ORIGINAL</span>
+          <span class="text-[10px] font-bold tracking-[1px] border border-hairline px-3 py-1.5 text-ink uppercase">THAI DIRECT</span>
+        </div>
+      </div>
+
+      {/* Column 2: Shop Range */}
+      <div class="flex flex-col">
+        <h4 class="font-sans text-xs font-bold tracking-[2px] text-ink uppercase mb-6 pb-4 border-b border-hairline m-0">
+          Shop Range
+        </h4>
+        <ul class="flex flex-col gap-4 list-none p-0 m-0">
+          <li><a href="/products" class="text-sm text-body hover:text-primary transition-colors no-underline">All Skincare</a></li>
+          <li><a href="/products?category=cleanser" class="text-sm text-body hover:text-primary transition-colors no-underline">Cleansers</a></li>
+          <li><a href="/products?category=moisturizer" class="text-sm text-body hover:text-primary transition-colors no-underline">Moisturisers</a></li>
+          <li><a href="/products?category=serum" class="text-sm text-body hover:text-primary transition-colors no-underline">Serums</a></li>
+          <li><a href="/products?category=spf" class="text-sm text-body hover:text-primary transition-colors no-underline">SPF Sunscreen</a></li>
+        </ul>
+      </div>
+
+      {/* Column 3: Information */}
+      <div class="flex flex-col">
+        <h4 class="font-sans text-xs font-bold tracking-[2px] text-ink uppercase mb-6 pb-4 border-b border-hairline m-0">
+          Information
+        </h4>
+        <ul class="flex flex-col gap-4 list-none p-0 m-0">
+          <li><a href="/faq" class="text-sm text-body hover:text-primary transition-colors no-underline">FAQs</a></li>
+          <li><a href="/products" class="text-sm text-body hover:text-primary transition-colors no-underline">How to Order</a></li>
+          <li><a href="/checkout" class="text-sm text-body hover:text-primary transition-colors no-underline">Checkout Flow</a></li>
+          <li><a href="/brands" class="text-sm text-body hover:text-primary transition-colors no-underline">Thai Brands</a></li>
+          <li><a href="/skin-types" class="text-sm text-body hover:text-primary transition-colors no-underline">Routine Guide</a></li>
+        </ul>
+      </div>
+
+      {/* Column 4: Newsletter */}
+      <div class="flex flex-col">
+        <h4 class="font-sans text-xs font-bold tracking-[2px] text-ink uppercase mb-6 pb-4 border-b border-hairline m-0">
+          Stay Informed
+        </h4>
+        <p class="text-sm text-body leading-relaxed mb-5 m-0">
+          Subscribe for notifications on Thai skincare shipments, restocking, and exclusive discounts in Bangladesh.
+        </p>
+        <form class="flex flex-col gap-3" onsubmit="event.preventDefault(); alert('Thank you for subscribing!');">
+          <input
+            type="email"
+            placeholder="Your email address"
+            required
+            class="bg-canvas border-2 border-stone text-ink px-4 py-3 h-12 rounded-none text-sm w-full focus:border-ink focus:outline-none transition-colors"
+            aria-label="Email Address for Newsletter"
+          />
+          <button
+            type="submit"
+            class="w-full h-12 px-6 bg-primary text-on-primary border-2 border-primary font-sans text-xs font-bold tracking-[1.2px] uppercase rounded-none cursor-pointer hover:bg-primary-pressed hover:border-primary-pressed transition-colors"
+          >
+            Subscribe
+          </button>
+        </form>
+      </div>
+    </div>
+
+    {/* Bottom Bar */}
+    <div class="border-t border-hairline py-8 flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left">
+      <p class="text-xs text-mute m-0">
+        &copy; {new Date().getFullYear()} TOK Skincare Bangladesh. All rights reserved.
+      </p>
+      <div class="flex items-center gap-2">
+        <span class="font-sans text-xs font-semibold text-ink uppercase tracking-[1px]">Premium Thai Import Care</span>
+      </div>
+    </div>
+  </div>
+</footer>

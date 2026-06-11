@@ -1,0 +1,58 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ImageCard from "../components/ui/ImageCard.astro";
+import { api } from "../lib/api";
+
+let types = [];
+try {
+  const homeData = await api.getHomeContent();
+  types = homeData.types || [];
+} catch (error) {
+  console.error("Failed to load skin types list:", error);
+}
+---
+
+<BaseLayout
+  title="Shop by Skin Type | TOK Skincare Bangladesh"
+  description="Discover Thai skincare routines tailored for your skin type."
+>
+  <div class="min-h-screen">
+    <div class="mx-auto px-4 md:px-6 py-12 md:py-16" style="max-width: 1536px;">
+      {/* Page Header */}
+      <div class="flex flex-col items-center text-center gap-2.5 mb-12 md:mb-16 max-w-2xl mx-auto">
+        <div class="font-sans text-[11px] font-bold tracking-[1.5px] uppercase text-mute/70 flex items-center gap-1.5 mb-1.5">
+          <a href="/" class="hover:text-primary transition-colors no-underline text-mute">Home</a>
+          <span class="text-stone">&bull;</span>
+          <span class="text-ink font-semibold">Skin Types</span>
+        </div>
+
+        <span class="font-sans text-[12px] font-bold tracking-[2.5px] uppercase text-primary leading-none">ROUTINE CURATION</span>
+        <h1 class="font-serif text-[34px] md:text-[44px] lg:text-[48px] font-bold text-ink leading-tight m-0">Shop by Skin Type</h1>
+        <p class="font-sans text-sm md:text-base text-mute m-0 mt-2  leading-relaxed">
+          Every skin has unique needs. Select your skin profile below to filter tailored Thai skincare formulas.
+        </p>
+      </div>
+
+      {/* Skin Types Grid */}
+      {types.length > 0 ? (
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {types.map((tp) => (
+            <ImageCard
+              href={`/products?skin-type=${tp.slug}`}
+              image={tp.img || "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?q=80&w=400&auto=format&fit=crop"}
+              alt={tp.name}
+              overline="SKIN TYPE"
+              title={tp.name}
+              cta="Shop Routine"
+              aspect="square"
+            />
+          ))}
+        </div>
+      ) : (
+        <div class="text-center py-20">
+          <p class="font-sans text-base text-mute m-0">Loading skin profiles...</p>
+        </div>
+      )}
+    </div>
+  </div>
+</BaseLayout>

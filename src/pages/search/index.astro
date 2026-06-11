@@ -1,0 +1,270 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import ProductCard from "../../components/ui/ProductCard.astro";
+import { api } from "../../lib/api";
+
+// Fetch recommendations statically to show if no search matches are found
+let fallbackProducts = [];
+try {
+  fallbackProducts = await api.getRandomProducts(4);
+} catch (error) {
+  console.error("Failed to load search page fallback suggestions:", error);
+}
+---
+
+<BaseLayout
+  title="Search Products | TOK Skincare Bangladesh"
+  description="Search for authentic Thai skincare, skin type treatments, concerns, and products in Bangladesh."
+>
+  <div class="max-w-[1536px] mx-auto px-4 md:px-6 py-8 pb-[72px]">
+    {/* Page Header */}
+    <div class="flex flex-col items-center text-center gap-2.5 mb-12 md:mb-16 max-w-2xl mx-auto">
+      <div class="font-sans text-[11px] font-bold tracking-[1.5px] uppercase text-mute/70 flex items-center gap-1.5 mb-1.5">
+        <a href="/" class="hover:text-primary transition-colors no-underline text-mute">Home</a>
+        <span class="text-stone">&bull;</span>
+        <span class="text-ink font-semibold">Search</span>
+      </div>
+
+      <span class="font-sans text-[12px] font-bold tracking-[2.5px] uppercase text-primary leading-none">SEARCH RESULTS</span>
+      <h1 class="font-serif text-[34px] md:text-[44px] lg:text-[48px] font-bold text-ink leading-tight m-0">Search Results</h1>
+      <p class="font-sans text-sm md:text-base text-mute m-0 mt-2  leading-relaxed" id="search-query-label">
+        Searching for products...
+      </p>
+    </div>
+
+    <!-- Shimmer Loader -->
+    <div class="shimmer-loader" id="search-shimmer">
+      <div class="shimmer-card"></div>
+      <div class="shimmer-card"></div>
+      <div class="shimmer-card"></div>
+      <div class="shimmer-card"></div>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" id="search-empty" style="display: none;">
+      <div class="empty-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+      </div>
+      <h2>No Matches Found</h2>
+      <p class="empty-text">We couldn't find any products matching your query. Try different keywords or check spelling.</p>
+      
+      <!-- Fallbacks -->
+      <div class="fallbacks-section">
+        <h3>Recommended For You</h3>
+        <div class="fallbacks-grid">
+          {fallbackProducts.map(prod => (
+            <ProductCard product={prod} />
+          ))}
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Grid -->
+    <div class="results-grid" id="search-results-grid" style="display: none;">
+      <!-- Populated client-side -->
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  /* Shimmer */
+  .shimmer-loader {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-xl);
+  }
+
+  .shimmer-card {
+    height: 380px;
+    background: linear-gradient(90deg, var(--color-surface-soft) 25%, var(--color-secondary-bg) 50%, var(--color-surface-soft) 75%);
+    background-size: 200% 100%;
+    animation: search-shimmer-anim 1.5s infinite;
+  }
+
+  /* Grid */
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-xl);
+  }
+
+  /* Empty state */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-xl) 0;
+  }
+
+  .empty-icon {
+    color: var(--color-stone);
+  }
+
+  .empty-state h2 {
+    font-family: var(--font-serif);
+    font-size: 24px;
+    color: var(--color-ink);
+  }
+
+  .empty-text {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    color: var(--color-mute);
+    max-width: 500px;
+    line-height: var(--leading-relaxed);
+  }
+
+  .fallbacks-section {
+    width: 100%;
+    border-top: 1px solid var(--color-hairline);
+    padding-top: var(--spacing-xxl);
+    margin-top: var(--spacing-xxl);
+    text-align: left;
+  }
+
+  .fallbacks-section h3 {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    color: var(--color-ink);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .fallbacks-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-xl);
+  }
+
+  @keyframes search-shimmer-anim {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Responsive styling */
+  @media (max-width: 1024px) {
+    .results-grid, .shimmer-loader, .fallbacks-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .results-grid, .shimmer-loader, .fallbacks-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .results-grid, .shimmer-loader, .fallbacks-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+  }
+</style>
+
+<script>
+  // Dynamic client search query loader
+  document.addEventListener('DOMContentLoaded', async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const query = urlParams.get('q')?.trim() || '';
+
+    const label = document.getElementById('search-query-label');
+    const shimmer = document.getElementById('search-shimmer');
+    const emptyState = document.getElementById('search-empty');
+    const resultsGrid = document.getElementById('search-results-grid');
+
+    // Helper to format BDT prices client-side
+    function formatBDT(val: number) {
+      return '৳' + val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+
+    if (!query) {
+      if (label) label.innerText = 'No search query provided. Please input a search keyword.';
+      if (shimmer) shimmer.style.display = 'none';
+      if (emptyState) emptyState.style.display = 'flex';
+      return;
+    }
+
+    if (label) label.innerText = `Showing results for "${query}"`;
+
+    try {
+      const res = await fetch(`https://backend.tokbd.com/api/products/search?q=${encodeURIComponent(query)}`);
+      if (res.ok) {
+        const data = await res.json();
+        const products = data.result || [];
+
+        if (shimmer) shimmer.style.display = 'none';
+
+        if (products.length === 0) {
+          if (emptyState) emptyState.style.display = 'flex';
+          return;
+        }
+
+        if (resultsGrid) {
+          resultsGrid.innerHTML = '';
+          
+          products.forEach((prod: any) => {
+            const currentPrice = parseFloat(prod.price);
+            const originalPrice = parseFloat(prod.origin_price);
+            const onSale = originalPrice > currentPrice;
+            const discountPercent = onSale ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100) : 0;
+            const imgUrl = prod.card_photo || prod.img || "https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?q=80&w=400&auto=format&fit=crop";
+
+            const card = document.createElement('div');
+            card.className = 'group flex flex-col bg-white border border-hairline-soft rounded-none';
+            card.setAttribute('data-id', prod.id);
+            card.innerHTML = `
+              <a href="/products/${prod.slug}" class="block relative" aria-label="View details for ${prod.name}">
+                <div class="relative w-full aspect-square sm:aspect-[3/4] bg-surface-card overflow-hidden">
+                  <img src="${imgUrl}" alt="${prod.name}" class="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+                  <div class="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+                    ${onSale ? `<span class="inline-flex items-center font-sans text-[12px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none rounded-none bg-ink text-on-dark">SALE -${discountPercent}%</span>` : ''}
+                    ${!prod.stock ? `<span class="inline-flex items-center font-sans text-[11px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none rounded-none bg-mute text-on-primary">SOLD OUT</span>` : ''}
+                    ${prod.origin_country === 'thailand' ? `<span class="inline-flex items-center font-sans text-[11px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none rounded-none bg-accent-gold text-on-dark">THAI</span>` : ''}
+                  </div>
+                </div>
+              </a>
+              <div class="flex flex-col flex-1 p-3.5 sm:p-5 gap-3">
+                <span class="font-sans text-[12px] md:text-[13px] font-bold tracking-[2px] uppercase text-mute">${prod.brand}</span>
+                <a href="/products/${prod.slug}" class="no-underline text-ink block flex-1">
+                  <h3 class="font-sans text-[15px] md:text-[16px] font-semibold leading-[1.4] line-clamp-2 text-ink m-0">${prod.name}</h3>
+                </a>
+                <div class="flex items-baseline gap-2 mt-1">
+                  <span class="font-sans text-[20px] md:text-[22px] font-bold text-ink leading-none">${formatBDT(currentPrice)}</span>
+                  ${onSale ? `<span class="font-sans text-[14px] md:text-[15px] text-ash line-through">${formatBDT(originalPrice)}</span>` : ''}
+                </div>
+                <div class="mt-auto pt-4">
+                  ${prod.stock ? `
+                    <button class="flex items-center justify-center gap-1.5 sm:gap-2 w-full h-12 px-2 sm:px-6 bg-primary text-on-primary font-sans text-[11px] sm:text-[13px] font-bold tracking-[0.5px] sm:tracking-[1.2px] uppercase rounded-none cursor-pointer hover:bg-primary-pressed active:bg-primary-pressed transition-colors duration-150 whitespace-nowrap" data-add-to-cart data-id="${prod.id}" data-name="${prod.name}" data-price="${prod.price}" data-img="${imgUrl}">
+                      <svg class="hidden sm:block" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <path d="M16 10a4 4 0 01-8 0"></path>
+                      </svg>
+                      <span>Add to Bag</span>
+                    </button>
+                  ` : `
+                    <span class="flex items-center justify-center w-full h-12 px-2 border border-hairline-soft font-sans text-[11px] sm:text-[13px] font-semibold text-mute uppercase rounded-none bg-surface-soft whitespace-nowrap">Out of Stock</span>
+                  `}
+                </div>
+              </div>
+            `;
+            resultsGrid.appendChild(card);
+          });
+
+          resultsGrid.style.display = 'grid';
+        }
+      } else {
+        throw new Error('Search request failed');
+      }
+    } catch (err) {
+      console.error('Error fetching search results:', err);
+      if (shimmer) shimmer.style.display = 'none';
+      if (emptyState) emptyState.style.display = 'flex';
+    }
+  });
+</script>

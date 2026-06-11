@@ -1,0 +1,267 @@
+---
+// Slide-in Cart Drawer feature using Tailwind CSS v4
+---
+
+<div class="fixed top-0 right-0 w-[420px] max-w-full h-full bg-canvas z-[1100] shadow-[10px_0_30px_rgba(26,14,20,0.08)] translate-x-full transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] border-l border-hairline" id="cart-drawer-sidebar" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Your Shopping Bag">
+  <div class="flex flex-col h-full relative">
+    <!-- Header -->
+    <div class="h-[68px] px-6 flex items-center justify-between border-b border-hairline">
+      <h2 class="font-sans text-heading-lg font-semibold text-ink">Your Bag (<span id="cart-drawer-count">0</span>)</h2>
+      <button class="text-mute w-11 h-11 flex items-center justify-center hover:text-ink transition-colors duration-150 cursor-pointer" id="cart-close-btn" aria-label="Close Shopping Bag">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Empty State -->
+    <div class="grow flex flex-col items-center justify-center p-8 text-center gap-4" id="cart-empty-state">
+      <div class="text-stone">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <path d="M16 10a4 4 0 0 1-8 0"></path>
+        </svg>
+      </div>
+      <p class="font-sans text-[15px] text-mute">Your bag is currently empty.</p>
+      <a href="/products" class="inline-flex items-center justify-center bg-ink text-on-dark font-sans text-[12px] font-bold tracking-[1px] uppercase h-11 px-6 rounded-none no-underline transition-colors duration-150 hover:bg-primary cursor-pointer" id="empty-shop-btn">Browse Products</a>
+    </div>
+
+    <!-- Loading Shimmer State -->
+    <div class="grow p-6 flex flex-col gap-6" id="cart-loading-state" style="display: none;">
+      <div class="h-[90px] bg-linear-to-r from-surface-soft via-secondary-bg to-surface-soft bg-[length:200%_100%] animate-shimmer"></div>
+      <div class="h-[90px] bg-linear-to-r from-surface-soft via-secondary-bg to-surface-soft bg-[length:200%_100%] animate-shimmer"></div>
+      <div class="h-[90px] bg-linear-to-r from-surface-soft via-secondary-bg to-surface-soft bg-[length:200%_100%] animate-shimmer"></div>
+    </div>
+
+    <!-- Enriched Item List -->
+    <div class="grow overflow-y-auto p-6" id="cart-items-container" style="display: none;">
+      <div class="flex flex-col gap-6" id="cart-items-list">
+        <!-- Rendered client-side -->
+      </div>
+    </div>
+
+    <!-- Summary Footer (Sticky to bottom) -->
+    <div class="border-t border-hairline p-6 bg-canvas flex flex-col gap-3" id="cart-summary-footer" style="display: none;">
+      <div class="flex justify-between items-center font-sans text-[16px] font-bold text-ink">
+        <span>Subtotal</span>
+        <span class="font-serif text-[20px] text-ink" id="cart-subtotal-val">৳0</span>
+      </div>
+      <p class="text-[12px] text-mute">Delivery charge calculated during checkout.</p>
+      
+      <div class="flex flex-col gap-2 mt-2">
+        <a href="/checkout" class="flex items-center justify-center bg-primary text-on-primary font-sans text-[13px] font-bold tracking-[1px] uppercase h-12 rounded-none no-underline transition-colors duration-150 hover:bg-primary-pressed cursor-pointer">Proceed to Checkout</a>
+        <button class="font-sans text-[11px] font-bold tracking-[1px] text-mute uppercase text-center py-2 hover:text-ink hover:underline cursor-pointer" id="continue-shopping-btn">Continue Shopping</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scrim background overlay for Cart Drawer -->
+<div class="fixed top-0 left-0 w-screen h-screen bg-ink/40 z-[1090] opacity-0 invisible transition-all duration-250" id="cart-scrim-layer"></div>
+
+<style>
+  #cart-drawer-sidebar.open {
+    transform: translateX(0);
+  }
+  #cart-scrim-layer.open {
+    opacity: 1;
+    visibility: visible;
+  }
+  @keyframes shimmer-anim {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .animate-shimmer {
+    animation: shimmer-anim 1.5s infinite;
+  }
+</style>
+
+<script>
+  // Setup Cart Drawer Interactivity
+  document.addEventListener('DOMContentLoaded', () => {
+    const sidebar = document.getElementById('cart-drawer-sidebar');
+    const scrim = document.getElementById('cart-scrim-layer');
+    
+    const closeBtn = document.getElementById('cart-close-btn');
+    const continueBtn = document.getElementById('continue-shopping-btn');
+    const emptyShopBtn = document.getElementById('empty-shop-btn');
+
+    const emptyState = document.getElementById('cart-empty-state');
+    const loadingState = document.getElementById('cart-loading-state');
+    const contentContainer = document.getElementById('cart-items-container');
+    const summaryFooter = document.getElementById('cart-summary-footer');
+    
+    const itemsList = document.getElementById('cart-items-list');
+    const subtotalText = document.getElementById('cart-subtotal-val');
+    const countBadge = document.getElementById('cart-drawer-count');
+
+    // Helper to format BDT prices client-side
+    function formatBDT(val: number) {
+      return '৳' + val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+
+    // Toggle Sidebar State
+    function toggleDrawer(open: boolean) {
+      if (open) {
+        sidebar?.classList.add('open');
+        sidebar?.setAttribute('aria-hidden', 'false');
+        scrim?.classList.add('open');
+      } else {
+        sidebar?.classList.remove('open');
+        sidebar?.setAttribute('aria-hidden', 'true');
+        scrim?.classList.remove('open');
+      }
+    }
+
+    // Listen to custom toggle events from nav bag icon or add to cart triggers
+    window.addEventListener('toggle-cart-drawer', (e: any) => {
+      const open = e.detail?.open !== undefined ? e.detail.open : !sidebar?.classList.contains('open');
+      toggleDrawer(open);
+
+      if (e.detail?.loading) {
+        if (loadingState) loadingState.style.display = 'flex';
+        if (contentContainer) contentContainer.style.display = 'none';
+        if (summaryFooter) summaryFooter.style.display = 'none';
+        if (emptyState) emptyState.style.display = 'none';
+      }
+    });
+
+    closeBtn?.addEventListener('click', () => toggleDrawer(false));
+    continueBtn?.addEventListener('click', () => toggleDrawer(false));
+    emptyShopBtn?.addEventListener('click', () => toggleDrawer(false));
+    scrim?.addEventListener('click', () => toggleDrawer(false));
+
+    // Listen to cart changes to redraw
+    window.addEventListener('cart-updated', (e: any) => {
+      const items = e.detail || [];
+      
+      // Stop loading state
+      if (loadingState) loadingState.style.display = 'none';
+
+      if (items.length === 0) {
+        if (emptyState) emptyState.style.display = 'flex';
+        if (contentContainer) contentContainer.style.display = 'none';
+        if (summaryFooter) summaryFooter.style.display = 'none';
+        if (countBadge) countBadge.innerText = '0';
+        return;
+      }
+
+      // Hide empty state, show content
+      if (emptyState) emptyState.style.display = 'none';
+      if (contentContainer) contentContainer.style.display = 'block';
+      if (summaryFooter) summaryFooter.style.display = 'flex';
+
+      // Redraw Items
+      if (itemsList) {
+        itemsList.innerHTML = '';
+        
+        let subtotal = 0;
+        let totalItems = 0;
+
+        items.forEach((item: any) => {
+          subtotal += item.price * item.quantity;
+          totalItems += item.quantity;
+
+          const itemNode = document.createElement('div');
+          // Class modified to use Tailwind CSS v4 values
+          itemNode.className = 'flex gap-4 pb-6 border-b border-hairline-soft';
+          itemNode.innerHTML = `
+            <div class="w-[70px] h-[93px] shrink-0 overflow-hidden bg-surface-card border border-hairline-soft">
+              <img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover" />
+            </div>
+            <div class="grow flex flex-col gap-1">
+              <h4 class="font-sans text-[14px] font-semibold text-ink leading-snug line-clamp-2">${item.name}</h4>
+              <span class="font-serif text-[15px] font-bold text-primary">${formatBDT(item.price)}</span>
+              <div class="flex items-center justify-between mt-auto">
+                <div class="flex items-center border border-hairline rounded-none h-7 bg-surface-soft">
+                  <button class="w-7 h-full flex items-center justify-center font-bold text-[12px] text-ink hover:bg-secondary-bg cursor-pointer dec-btn" data-id="${item.productId}" aria-label="Decrease quantity">-</button>
+                  <span class="w-8 text-center font-sans text-[12px] font-bold">${item.quantity}</span>
+                  <button class="w-7 h-full flex items-center justify-center font-bold text-[12px] text-ink hover:bg-secondary-bg cursor-pointer inc-btn" data-id="${item.productId}" aria-label="Increase quantity">+</button>
+                </div>
+                <button class="font-sans text-[11px] font-semibold text-mute uppercase tracking-[0.5px] bg-transparent border-none cursor-pointer hover:text-error hover:underline remove-item-btn" data-id="${item.productId}" aria-label="Remove item">Remove</button>
+              </div>
+            </div>
+          `;
+          itemsList.appendChild(itemNode);
+        });
+
+        // Update badge and summary totals
+        if (countBadge) countBadge.innerText = totalItems.toString();
+        if (subtotalText) subtotalText.innerText = formatBDT(subtotal);
+      }
+    });
+
+    // Handle interactive clicks inside Cart Drawer
+    itemsList?.addEventListener('click', async (e: any) => {
+      const target = e.target;
+      const productId = parseInt(target.getAttribute('data-id'));
+      if (isNaN(productId)) return;
+
+      const currentItem = window.tokCartCache?.find((i: any) => i.productId === productId);
+      if (!currentItem) return;
+
+      if (target.classList.contains('inc-btn')) {
+        updateQty(productId, currentItem.quantity + 1);
+      } else if (target.classList.contains('dec-btn')) {
+        updateQty(productId, currentItem.quantity - 1);
+      } else if (target.classList.contains('remove-item-btn')) {
+        removeItem(productId);
+      }
+    });
+
+    async function updateQty(productId: number, newQty: number) {
+      if (loadingState) loadingState.style.display = 'flex';
+      if (contentContainer) contentContainer.style.display = 'none';
+
+      try {
+        const res = await fetch('https://backend.tokbd.com/api/guest/cart/update', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            guestId: window.tokGuestId,
+            productId,
+            quantity: newQty
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          window.tokCartCache = data.cart || [];
+          const totalItems = window.tokCartCache.reduce((acc: number, item: any) => acc + item.quantity, 0);
+          window.updateCartBadgeCount(totalItems);
+          window.dispatchEvent(new CustomEvent('cart-updated', { detail: window.tokCartCache }));
+        }
+      } catch (err) {
+        console.error('Error updating cart quantity:', err);
+      }
+    }
+
+    async function removeItem(productId: number) {
+      if (loadingState) loadingState.style.display = 'flex';
+      if (contentContainer) contentContainer.style.display = 'none';
+
+      try {
+        const res = await fetch('https://backend.tokbd.com/api/guest/cart/remove', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            guestId: window.tokGuestId,
+            productId
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          window.tokCartCache = data.cart || [];
+          const totalItems = window.tokCartCache.reduce((acc: number, item: any) => acc + item.quantity, 0);
+          window.updateCartBadgeCount(totalItems);
+          window.dispatchEvent(new CustomEvent('cart-updated', { detail: window.tokCartCache }));
+        }
+      } catch (err) {
+        console.error('Error removing product from cart:', err);
+      }
+    }
+  });
+</script>

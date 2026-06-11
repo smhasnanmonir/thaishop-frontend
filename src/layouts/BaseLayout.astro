@@ -1,0 +1,193 @@
+---
+import MarqueeBanner from "../components/navigation/MarqueeBanner.astro";
+import PrimaryNav from "../components/navigation/PrimaryNav.astro";
+import Footer from "../components/navigation/Footer.astro";
+import CartDrawer from "../components/features/CartDrawer.astro";
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  type?: string;
+}
+
+const {
+  title = "TOK Skincare | Authentic Thai Beauty & Skincare in Bangladesh",
+  description = "Shop original Thailand skincare and beauty products in Bangladesh. Discover authentic Thai cleansers, serums, sunscreens, and moisturisers tailored for your skin.",
+  image = "/og/default-og.jpg",
+  type = "website",
+} = Astro.props;
+
+const canonicalUrl = new URL(Astro.url.pathname, "https://tokbd.com").toString();
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    
+    <!-- SEO Optimization for Bangladeshi Skincare Shoppers -->
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="robots" content="index, follow" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content={type} />
+    <meta property="og:url" content={Astro.url.href} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={image} />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content={Astro.url.href} />
+    <meta property="twitter:title" content={title} />
+    <meta property="twitter:description" content={description} />
+    <meta property="twitter:image" content={image} />
+
+    <!-- Google Fonts Preconnect and Load -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Global Stylesheet loaded via Vite -->
+    <slot name="head" />
+  </head>
+  <body>
+    <!-- Top-level Promotional Marquee -->
+    <MarqueeBanner />
+    
+    <!-- Navigation Chrome -->
+    <PrimaryNav />
+
+    <!-- Main Content Area -->
+    <main>
+      <slot />
+    </main>
+
+    <!-- Footer Area -->
+    <Footer />
+
+    <!-- Interactive Shopping Cart Drawer Overlay -->
+    <CartDrawer />
+
+    <!-- Global Shopping Cart Controller Script -->
+    <script is:inline>
+      // Global cart management logic
+      (function() {
+        // 1. Generate or fetch Guest ID
+        let guestId = localStorage.getItem('tok_guest_id');
+        if (!guestId) {
+          guestId = 'guest_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+          localStorage.setItem('tok_guest_id', guestId);
+        }
+        window.tokGuestId = guestId;
+
+        // 2. Local Cart cache to prevent extra fetches
+        window.tokCartCache = [];
+
+        // Helper to trigger UI updates
+        window.updateCartBadgeCount = function(count) {
+          const badge = document.getElementById('nav-cart-count');
+          const mobileBadge = document.getElementById('mobile-nav-cart-count');
+          if (badge) badge.innerText = count.toString();
+          if (mobileBadge) mobileBadge.innerText = count.toString();
+        };
+
+        // Helper to fetch cart from server
+        window.fetchGuestCart = async function() {
+          try {
+            const res = await fetch(`https://backend.tokbd.com/api/guest/cart?guestId=${encodeURIComponent(window.tokGuestId)}`);
+            if (res.ok) {
+              const data = await res.json();
+              window.tokCartCache = data.cart || [];
+              const totalItems = window.tokCartCache.reduce((acc, item) => acc + item.quantity, 0);
+              window.updateCartBadgeCount(totalItems);
+              window.dispatchEvent(new CustomEvent('cart-updated', { detail: window.tokCartCache }));
+            }
+          } catch (err) {
+            console.error('Error loading guest cart:', err);
+          }
+        };
+
+        // Initialize cart on load
+        window.fetchGuestCart();
+
+        // 3. Add to Cart listener
+        window.addEventListener('add-to-cart-action', async (e) => {
+          const { productId, quantity } = e.detail;
+          
+          // Show adding state
+          window.dispatchEvent(new CustomEvent('toggle-cart-drawer', { detail: { open: true, loading: true } }));
+
+          try {
+            const res = await fetch('https://backend.tokbd.com/api/guest/cart/add', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                guestId: window.tokGuestId,
+                productId: parseInt(productId),
+                quantity: parseInt(quantity)
+              })
+            });
+
+            if (res.ok) {
+              const data = await res.json();
+              window.tokCartCache = data.cart || [];
+              const totalItems = window.tokCartCache.reduce((acc, item) => acc + item.quantity, 0);
+              window.updateCartBadgeCount(totalItems);
+              
+              // Notify drawer to update and stop loading
+              window.dispatchEvent(new CustomEvent('cart-updated', { detail: window.tokCartCache }));
+              window.dispatchEvent(new CustomEvent('toggle-cart-drawer', { detail: { open: true, loading: false } }));
+            } else {
+              alert('Failed to add product to cart. Please try again.');
+            }
+          } catch (err) {
+            console.error('Failed to add to guest cart:', err);
+            alert('Connection error. Please try again.');
+          }
+        });
+
+        // 4. Delegate click events for quick add buttons
+        document.addEventListener('click', (e) => {
+          const btn = e.target.closest('[data-add-to-cart]');
+          if (btn) {
+            e.preventDefault();
+            const productId = btn.getAttribute('data-id');
+            if (productId) {
+              window.dispatchEvent(new CustomEvent('add-to-cart-action', {
+                detail: { productId, quantity: 1 }
+              }));
+            }
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  main {
+    flex-grow: 1;
+    width: 100%;
+  }
+</style>

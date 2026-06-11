@@ -1,0 +1,55 @@
+---
+interface Props {
+  rating: number;
+  count?: number;
+  size?: number;
+}
+
+const { rating = 0, count, size = 16 } = Astro.props;
+
+const getStarStatus = (index: number) => {
+  const threshold = index + 1;
+  if (rating >= threshold) return "full";
+  if (rating >= threshold - 0.5) return "half";
+  return "empty";
+};
+
+const stars = Array.from({ length: 5 }, (_, i) => getStarStatus(i));
+---
+
+<div class="inline-flex items-center gap-1" aria-label={`Rated ${rating} out of 5 stars`}>
+  <div class="inline-flex text-accent-gold">
+    {
+      stars.map((status) => {
+        if (status === "full") {
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" class="block">
+              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+            </svg>
+          );
+        } else if (status === "half") {
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="url(#halfStarGrad)" class="block">
+              <defs>
+                <linearGradient id="halfStarGrad">
+                  <stop offset="50%" stop-color="currentColor" />
+                  <stop offset="50%" stop-color="var(--color-hairline)" />
+                </linearGradient>
+              </defs>
+              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+            </svg>
+          );
+        } else {
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="var(--color-hairline)" class="block">
+              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+            </svg>
+          );
+        }
+      })
+    }
+  </div>
+  {count !== undefined && (
+    <span class="font-sans text-[12px] text-mute">({count})</span>
+  )}
+</div>

@@ -1,0 +1,21 @@
+---
+import ImageCard from "./ImageCard.astro";
+import type { Brand } from "../../lib/api";
+
+interface Props {
+  brand: Brand;
+}
+
+const { brand } = Astro.props;
+const imageUrl = brand.img || "https://images.unsplash.com/photo-1556228720-195a672e8a03?q=80&w=400&auto=format&fit=crop";
+---
+
+<ImageCard
+  href={`/products?brand=${brand.slug}`}
+  image={imageUrl}
+  alt={brand.name}
+  overline="THAI BRAND"
+  title={brand.name}
+  cta="Explore Products"
+  aspect="wide"
+/>
