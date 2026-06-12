@@ -1,0 +1,175 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Breadcrumb from "../../components/ui/Breadcrumb.astro";
+import ProductCard from "../../components/ui/ProductCard.astro";
+import Pagination from "../../components/ui/Pagination.astro";
+import { api } from "../../lib/api";
+import type { SkinConcern, Product } from "../../lib/api";
+
+const PAGE_SIZE = 15;
+
+export async function getStaticPaths() {
+  try {
+    const homeData = await api.getHomeContent();
+    const concerns = (homeData.concerns || []) as SkinConcern[];
+    return concerns.map((con: SkinConcern) => ({
+      params: { slug: con.slug },
+    }));
+  } catch (error) {
+    console.error("Error generating static paths for concerns:", error);
+    return [];
+  }
+}
+
+const { slug } = Astro.params;
+const page = Math.max(1, parseInt(Astro.url.searchParams.get("page") || "1"));
+
+let products: Product[] = [];
+let totalPages = 1;
+let total = 0;
+let displayName = (slug || "").replace(/-/g, " ");
+
+try {
+  const data = await api.getProductsBySkinConcern(slug, page, PAGE_SIZE);
+  products = data.result || [];
+  totalPages = data.totalPages || 1;
+  total = data.total || 0;
+  if (products.length > 0 && products[0].skin_concern) displayName = products[0].skin_concern;
+} catch (error) {
+  console.error(`Failed to load products for concern "${slug}":`, error);
+}
+
+const heading = displayName.replace(/\b\w/g, (c) => c.toUpperCase());
+
+const startIdx = total > 0 ? (page - 1) * PAGE_SIZE + 1 : 0;
+const endIdx = Math.min(page * PAGE_SIZE, total);
+---
+
+<BaseLayout
+  title={`${heading}${page > 1 ? ` - Page ${page}` : ""} | Skin Concerns | TOK Bangladesh`}
+  description={`Shop skincare products for ${heading}. Authentic Thai products.`}
+>
+  <div class="min-h-screen bg-canvas">
+    <div class="max-w-[1536px] mx-auto px-4 md:px-6 py-12 md:py-16">
+
+      <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "Concerns", href: "/concerns" }, { label: heading }]} />
+
+      <div class="flex flex-col items-center text-center gap-2.5 mb-12 md:mb-16 max-w-2xl mx-auto">
+        <span class="font-sans text-[11px] font-bold tracking-[2.5px] uppercase text-primary leading-none">TARGET REMEDIES</span>
+        <h1 class="font-serif text-[34px] md:text-[44px] lg:text-[48px] font-bold text-ink leading-tight m-0">{heading}</h1>
+        {total > 0 && (
+          <p class="font-sans text-sm md:text-base text-mute m-0 mt-2 leading-relaxed">
+            Showing {startIdx}&ndash;{endIdx} of {total} products
+          </p>
+        )}
+      </div>
+
+      {products.length > 0 ? (
+        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-1 sm:gap-2">
+          {products.map((prod) => <ProductCard product={prod} />)}
+        </div>
+      ) : (
+        <div class="flex flex-col items-center justify-center py-20 text-center gap-6 border border-dashed border-hairline">
+          <div class="text-stone">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </div>
+          <div class="flex flex-col gap-2 max-w-[400px]">
+            <h2 class="font-serif text-heading-xl text-ink font-bold m-0">No Products Yet</h2>
+            <p class="font-sans text-[15px] text-mute leading-relaxed m-0">We currently have no products for this skin concern.</p>
+          </div>
+          <a href="/concerns" class="inline-flex items-center justify-center bg-primary text-on-primary font-sans text-[13px] font-bold tracking-[1.2px] uppercase h-12 px-8 rounded-none no-underline transition-colors duration-150 hover:bg-primary-pressed">Browse All Concerns</a>
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div class="flex items-center justify-center border-t border-hairline pt-6 mt-8" id="pagination-wrapper">
+          <Pagination currentPage={page} totalPages={totalPages} />
+        </div>
+      )}
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const urlPage = parseInt(new URLSearchParams(window.location.search).get('page') || '1');
+    if (urlPage <= 1) return;
+
+    const wrapper = document.getElementById('pagination-wrapper');
+    if (!wrapper) return;
+
+    const totalPages = parseInt(wrapper.querySelector('[data-total-pages]')?.getAttribute('data-total-pages') || '1');
+    
+    function buildPages(c: number, t: number): (number | '...')[] {
+      if (t <= 7) return Array.from({ length: t }, (_, i) => i + 1);
+      const p: (number | '...')[] = [1];
+      if (c > 3) p.push('...');
+      for (let i = Math.max(2, c - 1); i <= Math.min(t - 1, c + 1); i++) p.push(i);
+      if (c < t - 2) p.push('...');
+      p.push(t);
+      return p;
+    }
+
+    function renderPagination(cur: number, total: number) {
+      const pages = buildPages(cur, total);
+      const btn = 'inline-flex items-center justify-center min-w-[40px] h-10 px-2.5 border border-hairline rounded-none bg-canvas text-ink font-sans text-[14px] font-semibold no-underline transition-colors select-none';
+      const btnHover = 'hover:bg-surface-blush hover:border-ink';
+      const btnActive = 'bg-ink text-on-dark border-ink cursor-default font-bold';
+      const btnDisabled = 'opacity-35 cursor-not-allowed pointer-events-none';
+      const nav = 'gap-1 px-3.5 text-[12px] font-bold tracking-[1px] uppercase';
+      let html = '<nav aria-label="Pagination" class="flex items-center gap-1.5 flex-wrap justify-center font-sans">';
+      if (cur > 1) {
+        html += '<a href="?page=' + (cur - 1) + '" class="' + btn + ' ' + btnHover + ' ' + nav + '"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0"><polyline points="15 18 9 12 15 6"></polyline></svg><span class="hidden sm:inline">Prev</span></a>';
+      } else {
+        html += '<span class="' + btn + ' ' + btnDisabled + ' ' + nav + '"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0"><polyline points="15 18 9 12 15 6"></polyline></svg><span class="hidden sm:inline">Prev</span></span>';
+      }
+      for (const p of pages) {
+        if (p === '...') {
+          html += '<span class="inline-flex items-center justify-center min-w-[32px] h-10 text-mute text-[14px]">&hellip;</span>';
+        } else if (p === cur) {
+          html += '<span class="' + btn + ' ' + btnActive + '" aria-current="page">' + p + '</span>';
+        } else {
+          html += '<a href="?page=' + p + '" class="' + btn + ' ' + btnHover + '">' + p + '</a>';
+        }
+      }
+      if (cur < total) {
+        html += '<a href="?page=' + (cur + 1) + '" class="' + btn + ' ' + btnHover + ' ' + nav + '"><span class="hidden sm:inline">Next</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0"><polyline points="9 18 15 12 9 6"></polyline></svg></a>';
+      } else {
+        html += '<span class="' + btn + ' ' + btnDisabled + ' ' + nav + '"><span class="hidden sm:inline">Next</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0"><polyline points="9 18 15 12 9 6"></polyline></svg></span>';
+      }
+      html += '</nav>';
+      wrapper.innerHTML = html;
+    }
+
+    renderPagination(urlPage, totalPages);
+
+    const grid = document.querySelector('.grid');
+    const slug = window.location.pathname.split('/').filter(Boolean).pop();
+    const countLabel = document.querySelector('.text-mute');
+    if (!grid || !slug) return;
+
+    fetch(`https://backend.tokbd.com/api/products/search/skin-concern/${slug}?page=${urlPage}&pageSize=15`)
+      .then(res => res.json())
+      .then(data => {
+        const items = data.result || [];
+        const total = data.total || 0;
+        const startIdx = (urlPage - 1) * 15 + 1;
+        const endIdx = Math.min(urlPage * 15, total);
+        if (countLabel && total > 0) countLabel.textContent = `Showing ${startIdx}\u2013${endIdx} of ${total} products`;
+        if (items.length === 0) return;
+        grid.innerHTML = '';
+        items.forEach((prod: any) => {
+          const price = parseFloat(prod.price);
+          const origPrice = parseFloat(prod.origin_price);
+          const onSale = origPrice > price;
+          const discount = onSale ? Math.round(((origPrice - price) / origPrice) * 100) : 0;
+          const img = prod.card_photo || prod.img || '';
+          const card = document.createElement('div');
+          card.className = 'group flex flex-col bg-white border border-hairline-soft rounded-none';
+          card.innerHTML = `<a href="/products/${prod.slug}" class="block relative"><div class="relative w-full aspect-square sm:aspect-[3/4] bg-surface-card overflow-hidden"><img src="${img}" alt="${prod.name}" class="absolute inset-0 w-full h-full object-cover" loading="lazy" /><div class="absolute top-3 left-3 flex flex-col gap-1.5 z-10">${onSale ? `<span class="inline-flex items-center font-sans text-[12px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none rounded-none bg-ink text-on-dark">SALE -${discount}%</span>` : ''}${!prod.stock ? `<span class="inline-flex items-center font-sans text-[11px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none rounded-none bg-mute text-on-primary">SOLD OUT</span>` : ''}</div></div></a><div class="flex flex-col flex-1 p-3.5 sm:p-5 gap-3"><span class="font-sans text-[12px] md:text-[13px] font-bold tracking-[2px] uppercase text-mute">${prod.brand}</span><a href="/products/${prod.slug}" class="no-underline text-ink block flex-1"><h3 class="font-sans text-[15px] md:text-[16px] font-semibold leading-[1.4] line-clamp-2 text-ink m-0">${prod.name}</h3></a><div class="flex items-baseline gap-2 mt-1"><span class="font-sans text-[20px] md:text-[22px] font-bold text-ink leading-none">৳${price.toLocaleString()}</span>${onSale ? `<span class="font-sans text-[14px] text-ash line-through">৳${origPrice.toLocaleString()}</span>` : ''}</div><div class="mt-auto pt-4">${prod.stock ? `<button class="flex items-center justify-center gap-1.5 sm:gap-2 w-full h-12 px-2 sm:px-6 bg-primary text-on-primary font-sans text-[11px] sm:text-[13px] font-bold tracking-[0.5px] sm:tracking-[1.2px] uppercase rounded-none cursor-pointer hover:bg-primary-pressed transition-colors duration-150 whitespace-nowrap" data-add-to-cart data-id="${prod.id}" data-name="${prod.name}" data-price="${prod.price}" data-img="${img}" data-slug="${prod.slug}"><svg class="hidden sm:block" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 01-8 0"></path></svg><span>Add to Bag</span></button>` : `<span class="flex items-center justify-center w-full h-12 px-2 border border-hairline-soft font-sans text-[11px] sm:text-[13px] font-semibold text-mute uppercase rounded-none bg-surface-soft whitespace-nowrap">Out of Stock</span>`}</div></div></div>`;
+          grid.appendChild(card);
+        });
+      })
+      .catch(err => console.error('Pagination fetch error:', err));
+  });
+</script>

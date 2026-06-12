@@ -3,6 +3,7 @@ import MarqueeBanner from "../components/navigation/MarqueeBanner.astro";
 import PrimaryNav from "../components/navigation/PrimaryNav.astro";
 import Footer from "../components/navigation/Footer.astro";
 import CartDrawer from "../components/features/CartDrawer.astro";
+import SuccessModal from "../components/ui/SuccessModal.astro";
 import "../styles/global.css";
 
 interface Props {
@@ -79,96 +80,102 @@ const canonicalUrl = new URL(Astro.url.pathname, "https://tokbd.com").toString()
     <!-- Interactive Shopping Cart Drawer Overlay -->
     <CartDrawer />
 
-    <!-- Global Shopping Cart Controller Script -->
+    <!-- Success Modal -->
+    <SuccessModal />
+
+    <!-- Global Offline Cart Controller -->
     <script is:inline>
-      // Global cart management logic
       (function() {
-        // 1. Generate or fetch Guest ID
-        let guestId = localStorage.getItem('tok_guest_id');
-        if (!guestId) {
-          guestId = 'guest_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-          localStorage.setItem('tok_guest_id', guestId);
+        var STORAGE_KEY = 'tok_cart';
+
+        function readItems() {
+          try {
+            var raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return [];
+            var parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+          } catch(e) { return []; }
         }
-        window.tokGuestId = guestId;
 
-        // 2. Local Cart cache to prevent extra fetches
-        window.tokCartCache = [];
+        function writeItems(items) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+        }
 
-        // Helper to trigger UI updates
+        function emit() {
+          var items = readItems();
+          var totalItems = items.reduce(function(s, i) { return s + i.quantity; }, 0);
+          var badge = document.getElementById('nav-cart-count');
+          var mobileBadge = document.getElementById('mobile-nav-cart-count');
+          if (badge) badge.innerText = totalItems.toString();
+          if (mobileBadge) mobileBadge.innerText = totalItems.toString();
+          window.dispatchEvent(new CustomEvent('cart-updated', { detail: items }));
+        }
+
+        // Initialize badge on load (deferred so CartDrawer listener is registered first)
+        var initialItems = readItems();
+        var initialCount = initialItems.reduce(function(s, i) { return s + i.quantity; }, 0);
         window.updateCartBadgeCount = function(count) {
-          const badge = document.getElementById('nav-cart-count');
-          const mobileBadge = document.getElementById('mobile-nav-cart-count');
+          var badge = document.getElementById('nav-cart-count');
+          var mobileBadge = document.getElementById('mobile-nav-cart-count');
           if (badge) badge.innerText = count.toString();
           if (mobileBadge) mobileBadge.innerText = count.toString();
         };
-
-        // Helper to fetch cart from server
-        window.fetchGuestCart = async function() {
-          try {
-            const res = await fetch(`https://backend.tokbd.com/api/guest/cart?guestId=${encodeURIComponent(window.tokGuestId)}`);
-            if (res.ok) {
-              const data = await res.json();
-              window.tokCartCache = data.cart || [];
-              const totalItems = window.tokCartCache.reduce((acc, item) => acc + item.quantity, 0);
-              window.updateCartBadgeCount(totalItems);
-              window.dispatchEvent(new CustomEvent('cart-updated', { detail: window.tokCartCache }));
-            }
-          } catch (err) {
-            console.error('Error loading guest cart:', err);
-          }
-        };
-
-        // Initialize cart on load
-        window.fetchGuestCart();
-
-        // 3. Add to Cart listener
-        window.addEventListener('add-to-cart-action', async (e) => {
-          const { productId, quantity } = e.detail;
-          
-          // Show adding state
-          window.dispatchEvent(new CustomEvent('toggle-cart-drawer', { detail: { open: true, loading: true } }));
-
-          try {
-            const res = await fetch('https://backend.tokbd.com/api/guest/cart/add', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                guestId: window.tokGuestId,
-                productId: parseInt(productId),
-                quantity: parseInt(quantity)
-              })
-            });
-
-            if (res.ok) {
-              const data = await res.json();
-              window.tokCartCache = data.cart || [];
-              const totalItems = window.tokCartCache.reduce((acc, item) => acc + item.quantity, 0);
-              window.updateCartBadgeCount(totalItems);
-              
-              // Notify drawer to update and stop loading
-              window.dispatchEvent(new CustomEvent('cart-updated', { detail: window.tokCartCache }));
-              window.dispatchEvent(new CustomEvent('toggle-cart-drawer', { detail: { open: true, loading: false } }));
-            } else {
-              alert('Failed to add product to cart. Please try again.');
-            }
-          } catch (err) {
-            console.error('Failed to add to guest cart:', err);
-            alert('Connection error. Please try again.');
-          }
+        // Defer initial cart-updated so drawer's DOMContentLoaded listener registers first
+        document.addEventListener('DOMContentLoaded', function() {
+          window.updateCartBadgeCount(initialCount);
+          window.dispatchEvent(new CustomEvent('cart-updated', { detail: initialItems }));
         });
 
-        // 4. Delegate click events for quick add buttons
-        document.addEventListener('click', (e) => {
-          const btn = e.target.closest('[data-add-to-cart]');
-          if (btn) {
-            e.preventDefault();
-            const productId = btn.getAttribute('data-id');
-            if (productId) {
-              window.dispatchEvent(new CustomEvent('add-to-cart-action', {
-                detail: { productId, quantity: 1 }
-              }));
-            }
+        // Listen for add-to-cart-action events (from ProductCard, PDP, etc)
+        window.addEventListener('add-to-cart-action', function(e) {
+          var detail = e.detail || {};
+          var productId = parseInt(detail.productId);
+          var quantity = parseInt(detail.quantity) || 1;
+          var name = detail.name || '';
+          var price = parseFloat(detail.price) || 0;
+          var image = detail.image || '';
+          var slug = detail.slug || '';
+          var items = readItems();
+          var existing = items.find(function(i) { return i.productId === productId; });
+
+          if (existing) {
+            existing.quantity += quantity;
+          } else {
+            items.push({ productId: productId, name: name, price: price, image: image, slug: slug, quantity: quantity });
           }
+
+          writeItems(items);
+          emit();
+
+          // Open cart drawer briefly to show the product was added
+          window.dispatchEvent(new CustomEvent('toggle-cart-drawer', { detail: { open: true } }));
+
+          // Show success modal
+          window.dispatchEvent(new CustomEvent('add-to-cart-success', {
+            detail: { name: name, price: price ? '৳' + price.toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0}) : '৳0', image: image }
+          }));
+        });
+
+        // Delegate click for [data-add-to-cart] buttons
+        document.addEventListener('click', function(e) {
+          var btn = e.target.closest('[data-add-to-cart]');
+          if (!btn) return;
+          e.preventDefault();
+          var productId = btn.getAttribute('data-id');
+          if (!productId) return;
+          window.dispatchEvent(new CustomEvent('add-to-cart-action', {
+            detail: {
+              productId: productId,
+              name: btn.getAttribute('data-name') || '',
+              price: btn.getAttribute('data-price') || '0',
+              image: btn.getAttribute('data-img') || '',
+              slug: btn.getAttribute('data-slug') || '',
+              quantity: 1
+            }
+          }));
+          
+          // Also open cart drawer so user sees the update
+          window.dispatchEvent(new CustomEvent('toggle-cart-drawer', { detail: { open: true } }));
         });
       })();
     </script>

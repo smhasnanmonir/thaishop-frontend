@@ -1,0 +1,55 @@
+---
+/**
+ * AddToCartButton — Reusable "Add to Bag" button.
+ * Dispatches `add-to-cart-action` CustomEvent with full product data.
+ * Works offline via localStorage cart store in BaseLayout.
+ */
+interface Props {
+  productId: number;
+  name: string;
+  price: number;
+  image: string;
+  slug?: string;
+  quantity?: number;
+  fullWidth?: boolean;
+  disabled?: boolean;
+  id?: string;
+}
+
+const {
+  productId,
+  name,
+  price,
+  image,
+  slug = "",
+  quantity = 1,
+  fullWidth = true,
+  disabled = false,
+  id,
+} = Astro.props;
+---
+
+<button
+  class:list={[
+    "inline-flex items-center justify-center gap-1.5 h-14 sm:h-12 px-6 bg-primary text-on-primary rounded-none font-sans text-[13px] font-bold tracking-[1.2px] uppercase cursor-pointer transition-colors duration-200 hover:bg-primary-pressed whitespace-nowrap",
+    fullWidth ? "flex-1 w-full" : "",
+    disabled ? "opacity-50 cursor-not-allowed pointer-events-none" : "",
+  ]}
+  id={id}
+  data-add-to-cart
+  data-id={productId}
+  data-name={name}
+  data-price={price}
+  data-img={image}
+  data-slug={slug}
+  data-qty={quantity}
+  disabled={disabled}
+  aria-label={`Add ${name} to bag`}
+>
+  <svg class="hidden sm:block shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path>
+    <line x1="3" y1="6" x2="21" y2="6"></line>
+    <path d="M16 10a4 4 0 01-8 0"></path>
+  </svg>
+  <span>Add to Bag</span>
+</button>

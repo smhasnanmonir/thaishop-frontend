@@ -1,0 +1,89 @@
+---
+/**
+ * Breadcrumb — Reusable breadcrumb navigation following Petal DESIGN.md.
+ *
+ * Props:
+ *   items — Array of { label: string, href?: string }. Last item (without href) is active.
+ *
+ * Design: DM Sans, 12px, muted-mauve links, ink bold for current.
+ *          Chevron › separator. Sharp-cornered, understated, editorial.
+ */
+interface Crumb {
+  label: string;
+  href?: string;
+}
+
+interface Props {
+  items: Crumb[];
+}
+
+const { items } = Astro.props;
+---
+
+<nav aria-label="Breadcrumb" class="bc-nav">
+  <ol class="bc-list">
+    {items.map((crumb, i) => {
+      const isLast = i === items.length - 1;
+      return (
+        <li class="bc-item">
+          {isLast ? (
+            <span class="bc-current">{crumb.label}</span>
+          ) : (
+            <>
+              <a href={crumb.href || "/"} class="bc-link">{crumb.label}</a>
+              <span class="bc-sep" aria-hidden="true">›</span>
+            </>
+          )}
+        </li>
+      );
+    })}
+  </ol>
+</nav>
+
+<style>
+  .bc-nav {
+    font-family: var(--font-sans, 'DM Sans', sans-serif);
+    margin-bottom: var(--spacing-xxl, 32px);
+  }
+
+  .bc-list {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .bc-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    letter-spacing: 0.4px;
+    line-height: 1.4;
+  }
+
+  .bc-link {
+    color: var(--color-mute, #6B4F5A);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+  }
+
+  .bc-link:hover {
+    color: var(--color-primary, #C8365A);
+  }
+
+  .bc-sep {
+    color: var(--color-stone, #C9B5BC);
+    font-size: 14px;
+    font-weight: 300;
+  }
+
+  .bc-current {
+    color: var(--color-ink, #1A0E14);
+    font-weight: 600;
+  }
+</style>

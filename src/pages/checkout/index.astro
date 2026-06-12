@@ -4,7 +4,7 @@ import CheckoutLayout from "../../layouts/CheckoutLayout.astro";
 
 <CheckoutLayout title="Secure Checkout | TOK Skincare">
   <!-- Success Confirmation Screen (hidden initially) -->
-  <div id="checkout-success-screen" class="hidden max-w-[600px] mx-auto text-center py-12 flex flex-col items-center gap-6 bg-canvas border border-hairline p-8 animate-fade-in">
+  <div id="checkout-success-screen" class="hidden max-w-[600px] mx-auto text-center py-12 flex flex-col items-center gap-6 bg-canvas border border-hairline p-8">
     <div class="w-16 h-16 bg-success-pale text-success-deep rounded-full flex items-center justify-center">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
         <polyline points="20 6 9 17 4 12"></polyline>
@@ -38,7 +38,7 @@ import CheckoutLayout from "../../layouts/CheckoutLayout.astro";
       </div>
       <div class="border-t border-hairline-soft pt-2 mt-2 flex justify-between font-sans text-[16px] font-bold">
         <span>Total Paid (COD):</span>
-        <span class="text-primary" id="success-total">৳0</span>
+        <span class="font-serif text-[22px] font-bold text-primary" id="success-total">৳0</span>
       </div>
     </div>
 
@@ -81,21 +81,21 @@ import CheckoutLayout from "../../layouts/CheckoutLayout.astro";
 
           <!-- Location (inside vs outside Dhaka) -->
           <div class="flex flex-col gap-2">
-            <span class="font-sans text-body-sm font-semibold text-ink">Delivery Location <span class="text-primary">*</span></span>
+            <span class="font-sans text-[15px] font-bold text-ink">Delivery Location <span class="text-primary">*</span></span>
             <div class="grid grid-cols-2 gap-4">
               <label class="border border-stone p-4 flex items-center gap-3 cursor-pointer select-none bg-canvas hover:bg-surface-soft">
                 <input type="radio" name="deliveryLocation" value="inside" checked class="accent-primary" />
-                <div class="flex flex-col">
-                  <span class="font-sans text-[13px] font-bold text-ink">Inside Dhaka</span>
-                  <span class="font-serif text-[12px] text-mute">Fee: ৳80 &bull; 2-3 Days</span>
+                <div class="flex flex-col gap-1">
+                  <span class="font-sans text-[15px] font-bold text-ink">Inside Dhaka</span>
+                  <span class="font-sans text-[14px] font-semibold text-mute">Fee: ৳80 &bull; 2-3 Days</span>
                 </div>
               </label>
 
               <label class="border border-stone p-4 flex items-center gap-3 cursor-pointer select-none bg-canvas hover:bg-surface-soft">
                 <input type="radio" name="deliveryLocation" value="outside" class="accent-primary" />
-                <div class="flex flex-col">
-                  <span class="font-sans text-[13px] font-bold text-ink">Outside Dhaka</span>
-                  <span class="font-serif text-[12px] text-mute">Fee: ৳130 &bull; 3-5 Days</span>
+                <div class="flex flex-col gap-1">
+                  <span class="font-sans text-[15px] font-bold text-ink">Outside Dhaka</span>
+                  <span class="font-sans text-[14px] font-semibold text-mute">Fee: ৳130 &bull; 3-5 Days</span>
                 </div>
               </label>
             </div>
@@ -152,15 +152,15 @@ import CheckoutLayout from "../../layouts/CheckoutLayout.astro";
         <div class="border-t border-hairline pt-4 flex flex-col gap-2">
           <div class="flex justify-between font-sans text-body-sm text-mute">
             <span>Items Subtotal:</span>
-            <span class="font-serif font-bold text-ink" id="checkout-subtotal">৳0</span>
+            <span class="font-serif text-[18px] font-semibold text-ink" id="checkout-subtotal">৳0</span>
           </div>
           <div class="flex justify-between font-sans text-body-sm text-mute">
             <span>Delivery Charge:</span>
-            <span class="font-serif font-bold text-ink" id="checkout-shipping">৳80</span>
+            <span class="font-serif text-[18px] font-semibold text-ink" id="checkout-shipping">৳80</span>
           </div>
           <div class="border-t border-hairline-soft pt-2 mt-2 flex justify-between font-sans text-[18px] font-bold text-ink">
             <span>Total Payable:</span>
-            <span class="font-serif text-[22px] text-primary" id="checkout-total">৳0</span>
+            <span class="font-serif text-[24px] font-bold text-primary" id="checkout-total">৳0</span>
           </div>
         </div>
 
@@ -209,7 +209,12 @@ import CheckoutLayout from "../../layouts/CheckoutLayout.astro";
 
     // Load checkout details
     function loadCheckout() {
-      const items = window.tokCartCache || [];
+      const STORAGE_KEY = 'tok_cart';
+      let items = [];
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) items = JSON.parse(raw);
+      } catch(e) { items = []; }
 
       if (items.length === 0) {
         // Redirect to products page if cart is accessed empty
@@ -234,10 +239,10 @@ import CheckoutLayout from "../../layouts/CheckoutLayout.astro";
               </div>
               <div class="flex flex-col">
                 <span class="font-sans text-[13px] font-semibold text-ink line-clamp-1 max-w-[200px]">${item.name}</span>
-                <span class="font-sans text-[11px] text-mute">Qty: ${item.quantity} &bull; ${formatBDT(item.price)}</span>
+                <span class="font-sans text-[11px] text-mute">Qty: ${item.quantity} &bull; <span class="font-serif font-semibold">${formatBDT(item.price)}</span></span>
               </div>
             </div>
-            <span class="font-serif text-[14px] font-bold text-ink">${formatBDT(item.price * item.quantity)}</span>
+            <span class="font-serif text-[16px] font-semibold text-ink">${formatBDT(item.price * item.quantity)}</span>
           `;
           itemsList.appendChild(card);
         });
@@ -287,7 +292,11 @@ import CheckoutLayout from "../../layouts/CheckoutLayout.astro";
       const locationEl = document.querySelector('input[name="deliveryLocation"]:checked') as HTMLInputElement;
       const deliveryLocation = locationEl ? locationEl.value as 'inside' | 'outside' : 'inside';
 
-      const items = window.tokCartCache.map((item: any) => ({
+      const STORAGE_KEY = 'tok_cart';
+      let currentItems = [];
+      try { currentItems = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { currentItems = []; }
+
+      const lineItems = currentItems.map((item: any) => ({
         productId: item.productId,
         quantity: item.quantity
       }));
@@ -319,10 +328,9 @@ import CheckoutLayout from "../../layouts/CheckoutLayout.astro";
           const data = await res.json();
           const orderId = data.orderId || 'SUCCESS';
 
-          // Clear local cart
-          window.tokCartCache = [];
+          // Clear local offline cart
+          localStorage.removeItem('tok_cart');
           window.updateCartBadgeCount(0);
-          localStorage.removeItem('tok_guest_cart'); // If any local cache exists
 
           // Clear cart on backend server
           fetch(`https://backend.tokbd.com/api/guest/cart/clear`, {
@@ -342,7 +350,7 @@ import CheckoutLayout from "../../layouts/CheckoutLayout.astro";
           if (mainScreen) mainScreen.style.display = 'none';
           if (successScreen) successScreen.classList.remove('hidden');
 
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          window.scrollTo({ top: 0 });
         } else {
           const errData = await res.json();
           alert(`Order Placement Error: ${errData.error || 'Failed to complete order. Please check inputs.'}`);

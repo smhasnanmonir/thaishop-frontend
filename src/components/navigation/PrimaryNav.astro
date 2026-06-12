@@ -51,7 +51,7 @@
   </div>
 
   <!-- Mobile Navigation Drawer -->
-  <div class="fixed top-0 left-0 w-[280px] h-full bg-canvas z-[1000] -translate-x-full transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] shadow-[10px_0_30px_rgba(0,0,0,0.05)] flex flex-col" id="mobile-menu-drawer">
+  <div class="fixed top-0 left-0 w-[280px] h-full bg-canvas z-[1000] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] shadow-[10px_0_30px_rgba(0,0,0,0.05)] flex flex-col" id="mobile-menu-drawer">
     <div class="h-[68px] px-6 flex items-center justify-between border-b border-hairline-soft">
       <a href="/" class="flex flex-col justify-center leading-none text-decoration-none">
         <span class="font-serif text-[24px] font-bold tracking-[2px] text-primary">TOK</span>
@@ -78,7 +78,7 @@
   </div>
 
   <!-- Floating Search Bar Overlay -->
-  <div class="absolute top-full left-0 w-full bg-canvas border-b border-hairline py-2.5 opacity-0 invisible -translate-y-2 transition-all duration-200 shadow-[0_10px_20px_rgba(0,0,0,0.05)]" id="search-overlay-panel">
+  <div class="absolute top-full left-0 w-full bg-canvas border-b border-hairline py-2.5 transition-all duration-200 shadow-[0_10px_20px_rgba(0,0,0,0.05)]" id="search-overlay-panel">
     <div class="max-w-[800px] mx-auto px-6 flex items-center gap-2">
       <form action="/search" method="GET" class="grow flex items-center bg-surface-card border border-hairline rounded-none pl-4 h-12">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-mute mr-2">
@@ -110,18 +110,25 @@
 </header>
 
 <style>
-  /* Header scale scroll behavior class bindings */
-  .header-nav.compressed {
-    height: 56px;
-    box-shadow: 0 4px 12px rgba(26, 14, 20, 0.05);
+  #mobile-menu-drawer {
+    translate: -100% 0;
   }
   #mobile-menu-drawer.open {
-    transform: translateX(0);
+    translate: none;
+  }
+  #search-overlay-panel {
+    opacity: 0;
+    visibility: hidden;
+    translate: 0 -0.5rem;
   }
   #search-overlay-panel.open {
     opacity: 1;
     visibility: visible;
-    transform: translateY(0);
+    translate: none;
+  }
+  #nav-scrim-layer {
+    opacity: 0;
+    visibility: hidden;
   }
   #nav-scrim-layer.open {
     opacity: 1;
@@ -135,25 +142,27 @@
     const menuToggleBtn = document.getElementById('menu-toggle-btn');
     const menuCloseBtn = document.getElementById('menu-close-btn');
     const mobileDrawer = document.getElementById('mobile-menu-drawer');
-    
+
     const searchToggleBtn = document.getElementById('search-toggle-btn');
     const searchCloseBtn = document.getElementById('search-close-btn');
     const searchOverlay = document.getElementById('search-overlay-panel');
-    const searchInputField = document.getElementById('search-input-field') as HTMLInputElement;
+    const searchInputField = document.getElementById('search-input-field');
 
     const cartToggleBtn = document.getElementById('cart-toggle-btn');
     const scrimLayer = document.getElementById('nav-scrim-layer');
 
-    // Sticky compressor effect on scroll
+    // ── Sticky header compression on scroll ────────────────────────
     window.addEventListener('scroll', () => {
       if (window.scrollY > 40) {
-        header?.classList.add('compressed');
+        header?.classList.remove('h-[68px]');
+        header?.classList.add('h-[56px]', 'shadow-[0_4px_12px_rgba(26,14,20,0.05)]');
       } else {
-        header?.classList.remove('compressed');
+        header?.classList.add('h-[68px]');
+        header?.classList.remove('h-[56px]', 'shadow-[0_4px_12px_rgba(26,14,20,0.05)]');
       }
     });
 
-    // Toggle Mobile Drawer
+    // ── Toggle Mobile Drawer ───────────────────────────────────────
     function toggleMobileMenu() {
       const isOpen = mobileDrawer?.classList.contains('open');
       if (isOpen) {
@@ -169,7 +178,7 @@
     menuToggleBtn?.addEventListener('click', toggleMobileMenu);
     menuCloseBtn?.addEventListener('click', toggleMobileMenu);
 
-    // Toggle Search Overlay
+    // ── Toggle Search Overlay ──────────────────────────────────────
     function toggleSearch() {
       const isOpen = searchOverlay?.classList.contains('open');
       if (isOpen) {
@@ -179,21 +188,21 @@
         searchOverlay?.classList.add('open');
         scrimLayer?.classList.add('open');
         mobileDrawer?.classList.remove('open');
-        setTimeout(() => {
-          searchInputField?.focus();
-        }, 100);
+        setTimeout(() => searchInputField?.focus(), 100);
       }
     }
 
     searchToggleBtn?.addEventListener('click', toggleSearch);
     searchCloseBtn?.addEventListener('click', toggleSearch);
 
+    // ── Scrim click closes everything ──────────────────────────────
     scrimLayer?.addEventListener('click', () => {
       mobileDrawer?.classList.remove('open');
       searchOverlay?.classList.remove('open');
       scrimLayer?.classList.remove('open');
     });
 
+    // ── Cart toggle ────────────────────────────────────────────────
     cartToggleBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
       window.dispatchEvent(new CustomEvent('toggle-cart-drawer'));

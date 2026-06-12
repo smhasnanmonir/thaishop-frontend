@@ -132,7 +132,7 @@ try {
               For {selectedConcern.name}
             </h2>
           </div>
-          <a href={`/products?skin_concern=${selectedConcern.slug}`} class="view-all-link">
+          <a href={`/concerns/${selectedConcern.slug}`} class="view-all-link">
             <span>View All</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="9 18 15 12 9 6"></polyline>
@@ -160,7 +160,7 @@ try {
               For {selectedSkinType.name}
             </h2>
           </div>
-          <a href={`/products?skin_type=${selectedSkinType.slug}`} class="view-all-link">
+          <a href={`/skin-types/${selectedSkinType.slug}`} class="view-all-link">
             <span>View All</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="9 18 15 12 9 6"></polyline>
@@ -188,7 +188,7 @@ try {
               From {selectedBrand.name}
             </h2>
           </div>
-          <a href={`/products?brand=${selectedBrand.slug}`} class="view-all-link">
+          <a href={`/brands/${selectedBrand.slug}`} class="view-all-link">
             <span>View All</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="9 18 15 12 9 6"></polyline>

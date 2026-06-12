@@ -1,0 +1,96 @@
+---
+/**
+ * Modal — Reusable overlay modal following Petal DESIGN.md specs.
+ * Zero border-radius, canvas background, hairline border, 50 % opacity scrim.
+ *
+ * Props:
+ *   id        — unique DOM id for the modal root
+ *   open?     — initial open state (default false)
+ *   maxWidth? — max-width class string  (default "max-w-[440px]")
+ */
+interface Props {
+  id: string;
+  open?: boolean;
+  maxWidth?: string;
+}
+
+const { id, open = false, maxWidth = "max-w-[440px]" } = Astro.props;
+---
+
+<div
+  id={id}
+  class={`fixed inset-0 z-[1200] flex items-center justify-center px-4 transition-all duration-200 ${open ? "visible opacity-100" : "invisible opacity-0"}`}
+  role="dialog"
+  aria-modal="true"
+>
+  <!-- Scrim -->
+  <div class="modal-scrim absolute inset-0 bg-ink/40" data-close></div>
+
+  <!-- Card -->
+  <div
+    class={`modal-card relative w-full ${maxWidth} bg-canvas border border-hairline rounded-none p-10 shadow-[0_8px_30px_rgba(26,14,20,0.12)] transition-all duration-200 ${open ? "scale-100 opacity-100" : "scale-95 opacity-0"}`}
+  >
+    <button
+      class="absolute top-4 right-4 w-11 h-11 flex items-center justify-center text-mute hover:text-ink transition-colors cursor-pointer"
+      aria-label="Close"
+      data-close
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+
+    <slot />
+  </div>
+</div>
+
+<style>
+  /* Programmatic open/close via .open class */
+  :global(.modal-open) {
+    @apply visible opacity-100;
+  }
+  :global(.modal-open .modal-card) {
+    @apply scale-100 opacity-100;
+  }
+</style>
+
+<script>
+  /**
+   * Generic Modal controller.
+   * Exposes open/close on the element for external scripts.
+   */
+  document.querySelectorAll("[data-modal]").forEach((root) => {
+    const scrim = root.querySelector("[data-close], .modal-scrim") as HTMLElement | null;
+    const card = root.querySelector(".modal-card") as HTMLElement | null;
+
+    function openModal() {
+      root.classList.add("modal-open");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeModal() {
+      root.classList.remove("modal-open");
+      document.body.style.overflow = "";
+    }
+
+    // Expose on the root element
+    (root as any)._open = openModal;
+    (root as any)._close = closeModal;
+
+    // Close on scrim / close-btn click
+    root.querySelectorAll("[data-close]").forEach((el) => {
+      el.addEventListener("click", closeModal);
+    });
+
+    // Close on Escape
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeModal();
+    });
+
+    // Initial state — respect data-initial="open"
+    if (root.getAttribute("data-initial") !== "open") {
+      closeModal();
+    }
+  });
+</script>

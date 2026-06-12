@@ -40,7 +40,7 @@ try {
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {brands.map((br) => (
             <ImageCard
-              href={`/products?brand=${br.slug}`}
+              href={`/brands/${br.slug}`}
               image={br.img || "https://images.unsplash.com/photo-1556228720-195a672e8a03?q=80&w=400&auto=format&fit=crop"}
               alt={br.name}
               overline="THAI BRAND"

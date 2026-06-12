@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import ProductCard from "../../components/ui/ProductCard.astro";
+import Pagination from "../../components/ui/Pagination.astro";
 import { api } from "../../lib/api";
 
 import type { Category, Brand, SkinConcern, SkinType, Product } from "../../lib/api";
@@ -137,8 +138,8 @@ try {
         </div>
 
         {/* Shimmer Loader */}
-        <div class="hidden grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6" id="plp-shimmer">
-          {[1,2,3,4,5,6].map(() => (
+        <div class="hidden grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-1 sm:gap-2" id="plp-shimmer">
+          {[1,2,3,4,5,6,7,8,9,10].map(() => (
             <div class="h-[380px] bg-gradient-to-r from-surface-soft via-secondary-bg to-surface-soft bg-[length:200%_100%] animate-[shimmer_1.5s_infinite]" />
           ))}
         </div>
@@ -149,36 +150,19 @@ try {
         </div>
 
         {/* Products Grid */}
-        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6" id="plp-products-grid">
+        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-1 sm:gap-2" id="plp-products-grid">
           {initialProducts.map(prod => (
             <ProductCard product={prod} />
           ))}
         </div>
 
         {/* Pagination */}
-        <div
-          class="flex items-center justify-center gap-6 border-t border-hairline pt-6 mt-4"
-          id="plp-pagination"
-          data-current-page="1"
-          data-total-pages={initialTotalPages}
-        >
-          <button
-            class="font-sans text-[11px] font-bold tracking-[1px] uppercase border border-hairline px-6 py-2 hover:bg-ink hover:text-on-dark transition-colors duration-150 disabled:text-ash disabled:border-hairline-soft disabled:cursor-not-allowed"
-            id="prev-page-btn"
-            disabled
-          >
-            &larr; Previous
-          </button>
-          <span class="font-sans text-[14px] text-ink font-semibold">
-            Page <span id="current-page-num">1</span> of <span id="total-pages-num">{initialTotalPages}</span>
-          </span>
-          <button
-            class="font-sans text-[11px] font-bold tracking-[1px] uppercase border border-hairline px-6 py-2 hover:bg-ink hover:text-on-dark transition-colors duration-150 disabled:text-ash disabled:border-hairline-soft disabled:cursor-not-allowed"
-            id="next-page-btn"
-            disabled={initialTotalPages <= 1}
-          >
-            Next &rarr;
-          </button>
+        <div id="plp-pagination-wrapper" class="flex items-center justify-center border-t border-hairline pt-6 mt-4">
+          <Pagination
+            id="plp-pagination"
+            currentPage={1}
+            totalPages={initialTotalPages}
+          />
         </div>
       </div>
     </div>
@@ -201,17 +185,85 @@ try {
     const totalLabel = document.getElementById('total-count-label');
     const mobileTotalLabel = document.getElementById('mobile-count-label');
 
-    const pagination = document.getElementById('plp-pagination');
-    const prevBtn = document.getElementById('prev-page-btn');
-    const nextBtn = document.getElementById('next-page-btn');
-    const pageNum = document.getElementById('current-page-num');
-    const totalPagesNum = document.getElementById('total-pages-num');
+    const paginationWrapper = document.getElementById('plp-pagination-wrapper');
 
     let currentPage = 1;
     let totalPages = 1;
 
     function formatBDT(val: number) {
       return '৳' + val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+
+    function renderPagination(cur: number, total: number) {
+      if (!paginationWrapper) return;
+      if (total <= 1) { paginationWrapper.classList.add('hidden'); return; }
+      paginationWrapper.classList.remove('hidden');
+
+      function buildPages(c: number, t: number): (number | "...")[] {
+        if (t <= 7) return Array.from({ length: t }, (_, i) => i + 1);
+        const p: (number | "...")[] = [1];
+        if (c > 3) p.push("...");
+        for (let i = Math.max(2, c - 1); i <= Math.min(t - 1, c + 1); i++) p.push(i);
+        if (c < t - 2) p.push("...");
+        p.push(t);
+        return p;
+      }
+
+      const pages = buildPages(cur, total);
+      let html = '<nav aria-label="Pagination" class="pgn">';
+
+      // Prev
+      if (cur > 1) {
+        html += '<button class="pgn-btn pgn-nav" data-pgn="prev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg><span class="pgn-nav-label">Prev</span></button>';
+      } else {
+        html += '<button class="pgn-btn pgn-nav pgn-disabled" disabled><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg><span class="pgn-nav-label">Prev</span></button>';
+      }
+
+      // Numbers
+      for (const p of pages) {
+        if (p === "...") {
+          html += '<span class="pgn-ellipsis" aria-hidden="true">&hellip;</span>';
+        } else if (p === cur) {
+          html += '<span class="pgn-btn pgn-num pgn-active" aria-current="page">' + p + '</span>';
+        } else {
+          html += '<button class="pgn-btn pgn-num" data-pgn="page" data-page="' + p + '">' + p + '</button>';
+        }
+      }
+
+      // Next
+      if (cur < total) {
+        html += '<button class="pgn-btn pgn-nav" data-pgn="next"><span class="pgn-nav-label">Next</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>';
+      } else {
+        html += '<button class="pgn-btn pgn-nav pgn-disabled" disabled><span class="pgn-nav-label">Next</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>';
+      }
+
+      html += '</nav>';
+      paginationWrapper.innerHTML = html;
+
+      // Attach click handlers
+      paginationWrapper.querySelectorAll('[data-pgn]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const target = e.currentTarget as HTMLElement;
+          const action = target.getAttribute('data-pgn');
+          if (action === 'prev' && currentPage > 1) {
+            currentPage--;
+            fetchFilteredProducts(currentPage);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          } else if (action === 'next' && currentPage < totalPages) {
+            currentPage++;
+            fetchFilteredProducts(currentPage);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          } else if (action === 'page') {
+            const pg = parseInt(target.getAttribute('data-page') || '1');
+            if (pg !== currentPage) {
+              currentPage = pg;
+              fetchFilteredProducts(currentPage);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }
+        });
+      });
     }
 
     mobileToggle?.addEventListener('click', () => {
@@ -247,6 +299,7 @@ try {
     });
 
     if (hasUrlFilters) fetchFilteredProducts(1);
+    else renderPagination(1, {initialTotalPages});
 
     checkboxes.forEach((cb) => {
       cb.addEventListener('change', () => {
@@ -259,22 +312,6 @@ try {
       checkboxes.forEach((cb) => cb.checked = false);
       currentPage = 1;
       fetchFilteredProducts(1);
-    });
-
-    prevBtn?.addEventListener('click', () => {
-      if (currentPage > 1) {
-        currentPage--;
-        fetchFilteredProducts(currentPage);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    });
-
-    nextBtn?.addEventListener('click', () => {
-      if (currentPage < totalPages) {
-        currentPage++;
-        fetchFilteredProducts(currentPage);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
     });
 
     async function fetchFilteredProducts(page: number) {
@@ -299,7 +336,7 @@ try {
 
       const queryParams = new URLSearchParams({
         page: page.toString(),
-        pageSize: '12',
+        pageSize: '20',
       });
       if (filtersString) queryParams.append('filters', filtersString);
 
@@ -314,11 +351,7 @@ try {
 
           if (plpShimmer) plpShimmer.style.display = 'none';
 
-          if (pageNum) pageNum.innerText = currentPage.toString();
-          if (totalPagesNum) totalPagesNum.innerText = totalPages.toString();
-          
-          if (prevBtn) (prevBtn as HTMLButtonElement).disabled = currentPage <= 1;
-          if (nextBtn) (nextBtn as HTMLButtonElement).disabled = currentPage >= totalPages;
+          renderPagination(currentPage, totalPages);
 
           if (items.length === 0) {
             if (plpEmpty) plpEmpty.style.display = 'block';
@@ -362,7 +395,7 @@ try {
                   </div>
                   <div class="mt-auto pt-4">
                     ${prod.stock ? `
-                      <button class="flex items-center justify-center gap-1.5 sm:gap-2 w-full h-12 px-2 sm:px-6 bg-primary text-on-primary font-sans text-[11px] sm:text-[13px] font-bold tracking-[0.5px] sm:tracking-[1.2px] uppercase rounded-none cursor-pointer hover:bg-primary-pressed active:bg-primary-pressed transition-colors duration-150 whitespace-nowrap" data-add-to-cart data-id="${prod.id}" data-name="${prod.name}" data-price="${prod.price}" data-img="${imgUrl}">
+                      <button class="flex items-center justify-center gap-1.5 sm:gap-2 w-full h-12 px-2 sm:px-6 bg-primary text-on-primary font-sans text-[11px] sm:text-[13px] font-bold tracking-[0.5px] sm:tracking-[1.2px] uppercase rounded-none cursor-pointer hover:bg-primary-pressed active:bg-primary-pressed transition-colors duration-150 whitespace-nowrap" data-add-to-cart data-id="${prod.id}" data-name="${prod.name}" data-price="${prod.price}" data-img="${imgUrl}" data-slug="${prod.slug}">
                         <svg class="hidden sm:block" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                           <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path>
                           <line x1="3" y1="6" x2="21" y2="6"></line>

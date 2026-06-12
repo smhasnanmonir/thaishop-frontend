@@ -1,8 +1,16 @@
 ---
-// Slide-in Cart Drawer feature using Tailwind CSS v4
+// Slide-in Cart Drawer — offline/localStorage based, no backend dependency.
+// Follows Petal DESIGN.md: canvas bg, zero border-radius, serif price, sans body.
 ---
 
-<div class="fixed top-0 right-0 w-[420px] max-w-full h-full bg-canvas z-[1100] shadow-[10px_0_30px_rgba(26,14,20,0.08)] translate-x-full transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] border-l border-hairline" id="cart-drawer-sidebar" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Your Shopping Bag">
+<div
+  class="fixed top-0 right-0 w-[420px] max-w-full h-full bg-canvas z-[1100] shadow-[10px_0_30px_rgba(26,14,20,0.08)] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] border-l border-hairline"
+  id="cart-drawer-sidebar"
+  aria-hidden="true"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Your Shopping Bag"
+>
   <div class="flex flex-col h-full relative">
     <!-- Header -->
     <div class="h-[68px] px-6 flex items-center justify-between border-b border-hairline">
@@ -28,13 +36,6 @@
       <a href="/products" class="inline-flex items-center justify-center bg-ink text-on-dark font-sans text-[12px] font-bold tracking-[1px] uppercase h-11 px-6 rounded-none no-underline transition-colors duration-150 hover:bg-primary cursor-pointer" id="empty-shop-btn">Browse Products</a>
     </div>
 
-    <!-- Loading Shimmer State -->
-    <div class="grow p-6 flex flex-col gap-6" id="cart-loading-state" style="display: none;">
-      <div class="h-[90px] bg-linear-to-r from-surface-soft via-secondary-bg to-surface-soft bg-[length:200%_100%] animate-shimmer"></div>
-      <div class="h-[90px] bg-linear-to-r from-surface-soft via-secondary-bg to-surface-soft bg-[length:200%_100%] animate-shimmer"></div>
-      <div class="h-[90px] bg-linear-to-r from-surface-soft via-secondary-bg to-surface-soft bg-[length:200%_100%] animate-shimmer"></div>
-    </div>
-
     <!-- Enriched Item List -->
     <div class="grow overflow-y-auto p-6" id="cart-items-container" style="display: none;">
       <div class="flex flex-col gap-6" id="cart-items-list">
@@ -49,9 +50,9 @@
         <span class="font-serif text-[20px] text-ink" id="cart-subtotal-val">৳0</span>
       </div>
       <p class="text-[12px] text-mute">Delivery charge calculated during checkout.</p>
-      
+
       <div class="flex flex-col gap-2 mt-2">
-        <a href="/checkout" class="flex items-center justify-center bg-primary text-on-primary font-sans text-[13px] font-bold tracking-[1px] uppercase h-12 rounded-none no-underline transition-colors duration-150 hover:bg-primary-pressed cursor-pointer">Proceed to Checkout</a>
+        <a href="/cart" class="flex items-center justify-center bg-primary text-on-primary font-sans text-[13px] font-bold tracking-[1px] uppercase h-12 rounded-none no-underline transition-colors duration-150 hover:bg-primary-pressed cursor-pointer">View Full Bag</a>
         <button class="font-sans text-[11px] font-bold tracking-[1px] text-mute uppercase text-center py-2 hover:text-ink hover:underline cursor-pointer" id="continue-shopping-btn">Continue Shopping</button>
       </div>
     </div>
@@ -59,52 +60,108 @@
 </div>
 
 <!-- Scrim background overlay for Cart Drawer -->
-<div class="fixed top-0 left-0 w-screen h-screen bg-ink/40 z-[1090] opacity-0 invisible transition-all duration-250" id="cart-scrim-layer"></div>
+<div class="fixed top-0 left-0 w-screen h-screen bg-ink/40 z-[1090] transition-all duration-250" id="cart-scrim-layer"></div>
 
 <style>
+  #cart-drawer-sidebar {
+    translate: 100% 0;
+  }
   #cart-drawer-sidebar.open {
-    transform: translateX(0);
+    translate: none;
+  }
+  #cart-scrim-layer {
+    opacity: 0;
+    visibility: hidden;
   }
   #cart-scrim-layer.open {
     opacity: 1;
     visibility: visible;
   }
-  @keyframes shimmer-anim {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-  }
-  .animate-shimmer {
-    animation: shimmer-anim 1.5s infinite;
-  }
 </style>
 
 <script>
-  // Setup Cart Drawer Interactivity
-  document.addEventListener('DOMContentLoaded', () => {
-    const sidebar = document.getElementById('cart-drawer-sidebar');
-    const scrim = document.getElementById('cart-scrim-layer');
-    
-    const closeBtn = document.getElementById('cart-close-btn');
-    const continueBtn = document.getElementById('continue-shopping-btn');
-    const emptyShopBtn = document.getElementById('empty-shop-btn');
+  (function() {
+    var STORAGE_KEY = 'tok_cart';
+    var sidebar = document.getElementById('cart-drawer-sidebar');
+    var scrim = document.getElementById('cart-scrim-layer');
+    var closeBtn = document.getElementById('cart-close-btn');
+    var continueBtn = document.getElementById('continue-shopping-btn');
+    var emptyShopBtn = document.getElementById('empty-shop-btn');
+    var emptyState = document.getElementById('cart-empty-state');
+    var contentContainer = document.getElementById('cart-items-container');
+    var summaryFooter = document.getElementById('cart-summary-footer');
+    var itemsList = document.getElementById('cart-items-list');
+    var subtotalText = document.getElementById('cart-subtotal-val');
+    var countBadge = document.getElementById('cart-drawer-count');
 
-    const emptyState = document.getElementById('cart-empty-state');
-    const loadingState = document.getElementById('cart-loading-state');
-    const contentContainer = document.getElementById('cart-items-container');
-    const summaryFooter = document.getElementById('cart-summary-footer');
-    
-    const itemsList = document.getElementById('cart-items-list');
-    const subtotalText = document.getElementById('cart-subtotal-val');
-    const countBadge = document.getElementById('cart-drawer-count');
+    function readItems() {
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+        var parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch(e) { return []; }
+    }
 
-    // Helper to format BDT prices client-side
-    function formatBDT(val: number) {
+    function formatBDT(val) {
       return '৳' + val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     }
 
-    // Toggle Sidebar State
-    function toggleDrawer(open: boolean) {
+    // ── Render items from localStorage into the drawer ─────────────
+    function renderDrawer() {
+      var items = readItems();
+
+      if (items.length === 0) {
+        if (emptyState) emptyState.style.display = 'flex';
+        if (contentContainer) contentContainer.style.display = 'none';
+        if (summaryFooter) summaryFooter.style.display = 'none';
+        if (countBadge) countBadge.innerText = '0';
+        return;
+      }
+
+      if (emptyState) emptyState.style.display = 'none';
+      if (contentContainer) contentContainer.style.display = 'block';
+      if (summaryFooter) summaryFooter.style.display = 'flex';
+
+      if (itemsList) {
+        itemsList.innerHTML = '';
+        var subtotal = 0;
+        var totalItems = 0;
+
+        items.forEach(function(item) {
+          subtotal += item.price * item.quantity;
+          totalItems += item.quantity;
+
+          var node = document.createElement('div');
+          node.className = 'flex gap-4 pb-6 border-b border-hairline-soft';
+          node.innerHTML =
+            '<div class="w-[70px] h-[93px] shrink-0 overflow-hidden bg-surface-card border border-hairline-soft">' +
+              '<img src="' + item.image + '" alt="' + item.name + '" class="w-full h-full object-cover" />' +
+            '</div>' +
+            '<div class="grow flex flex-col gap-1">' +
+              '<h4 class="font-sans text-[14px] font-semibold text-ink leading-snug line-clamp-2">' + item.name + '</h4>' +
+              '<span class="font-serif text-[15px] font-bold text-primary">' + formatBDT(item.price) + '</span>' +
+              '<div class="flex items-center justify-between mt-auto">' +
+                '<div class="flex items-center border border-hairline rounded-none h-7 bg-surface-soft">' +
+                  '<button class="w-7 h-full flex items-center justify-center font-bold text-[12px] text-ink hover:bg-secondary-bg cursor-pointer dec-btn" data-id="' + item.productId + '" aria-label="Decrease quantity">-</button>' +
+                  '<span class="w-8 text-center font-sans text-[12px] font-bold">' + item.quantity + '</span>' +
+                  '<button class="w-7 h-full flex items-center justify-center font-bold text-[12px] text-ink hover:bg-secondary-bg cursor-pointer inc-btn" data-id="' + item.productId + '" aria-label="Increase quantity">+</button>' +
+                '</div>' +
+                '<button class="font-sans text-[11px] font-semibold text-mute uppercase tracking-[0.5px] bg-transparent border-none cursor-pointer hover:text-error hover:underline remove-item-btn" data-id="' + item.productId + '" aria-label="Remove item">Remove</button>' +
+              '</div>' +
+            '</div>';
+          itemsList.appendChild(node);
+        });
+
+        if (countBadge) countBadge.innerText = totalItems.toString();
+        if (subtotalText) subtotalText.innerText = formatBDT(subtotal);
+      }
+    }
+
+    // ── Toggle drawer open/close ───────────────────────────────────
+    function toggleDrawer(open) {
       if (open) {
+        renderDrawer(); // Always render fresh data when opening
         sidebar?.classList.add('open');
         sidebar?.setAttribute('aria-hidden', 'false');
         scrim?.classList.add('open');
@@ -115,153 +172,70 @@
       }
     }
 
-    // Listen to custom toggle events from nav bag icon or add to cart triggers
-    window.addEventListener('toggle-cart-drawer', (e: any) => {
-      const open = e.detail?.open !== undefined ? e.detail.open : !sidebar?.classList.contains('open');
+    // ── Event listeners ────────────────────────────────────────────
+
+    // Toggle drawer from nav icon or add-to-cart
+    window.addEventListener('toggle-cart-drawer', function(e) {
+      var isOpen = sidebar?.classList.contains('open');
+      var open = e.detail?.open !== undefined ? e.detail.open : !isOpen;
       toggleDrawer(open);
-
-      if (e.detail?.loading) {
-        if (loadingState) loadingState.style.display = 'flex';
-        if (contentContainer) contentContainer.style.display = 'none';
-        if (summaryFooter) summaryFooter.style.display = 'none';
-        if (emptyState) emptyState.style.display = 'none';
-      }
     });
 
-    closeBtn?.addEventListener('click', () => toggleDrawer(false));
-    continueBtn?.addEventListener('click', () => toggleDrawer(false));
-    emptyShopBtn?.addEventListener('click', () => toggleDrawer(false));
-    scrim?.addEventListener('click', () => toggleDrawer(false));
+    // Close handlers
+    closeBtn?.addEventListener('click', function() { toggleDrawer(false); });
+    continueBtn?.addEventListener('click', function() { toggleDrawer(false); });
+    emptyShopBtn?.addEventListener('click', function() { toggleDrawer(false); });
+    scrim?.addEventListener('click', function() { toggleDrawer(false); });
 
-    // Listen to cart changes to redraw
-    window.addEventListener('cart-updated', (e: any) => {
-      const items = e.detail || [];
-      
-      // Stop loading state
-      if (loadingState) loadingState.style.display = 'none';
-
-      if (items.length === 0) {
-        if (emptyState) emptyState.style.display = 'flex';
-        if (contentContainer) contentContainer.style.display = 'none';
-        if (summaryFooter) summaryFooter.style.display = 'none';
-        if (countBadge) countBadge.innerText = '0';
-        return;
-      }
-
-      // Hide empty state, show content
-      if (emptyState) emptyState.style.display = 'none';
-      if (contentContainer) contentContainer.style.display = 'block';
-      if (summaryFooter) summaryFooter.style.display = 'flex';
-
-      // Redraw Items
-      if (itemsList) {
-        itemsList.innerHTML = '';
-        
-        let subtotal = 0;
-        let totalItems = 0;
-
-        items.forEach((item: any) => {
-          subtotal += item.price * item.quantity;
-          totalItems += item.quantity;
-
-          const itemNode = document.createElement('div');
-          // Class modified to use Tailwind CSS v4 values
-          itemNode.className = 'flex gap-4 pb-6 border-b border-hairline-soft';
-          itemNode.innerHTML = `
-            <div class="w-[70px] h-[93px] shrink-0 overflow-hidden bg-surface-card border border-hairline-soft">
-              <img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover" />
-            </div>
-            <div class="grow flex flex-col gap-1">
-              <h4 class="font-sans text-[14px] font-semibold text-ink leading-snug line-clamp-2">${item.name}</h4>
-              <span class="font-serif text-[15px] font-bold text-primary">${formatBDT(item.price)}</span>
-              <div class="flex items-center justify-between mt-auto">
-                <div class="flex items-center border border-hairline rounded-none h-7 bg-surface-soft">
-                  <button class="w-7 h-full flex items-center justify-center font-bold text-[12px] text-ink hover:bg-secondary-bg cursor-pointer dec-btn" data-id="${item.productId}" aria-label="Decrease quantity">-</button>
-                  <span class="w-8 text-center font-sans text-[12px] font-bold">${item.quantity}</span>
-                  <button class="w-7 h-full flex items-center justify-center font-bold text-[12px] text-ink hover:bg-secondary-bg cursor-pointer inc-btn" data-id="${item.productId}" aria-label="Increase quantity">+</button>
-                </div>
-                <button class="font-sans text-[11px] font-semibold text-mute uppercase tracking-[0.5px] bg-transparent border-none cursor-pointer hover:text-error hover:underline remove-item-btn" data-id="${item.productId}" aria-label="Remove item">Remove</button>
-              </div>
-            </div>
-          `;
-          itemsList.appendChild(itemNode);
-        });
-
-        // Update badge and summary totals
-        if (countBadge) countBadge.innerText = totalItems.toString();
-        if (subtotalText) subtotalText.innerText = formatBDT(subtotal);
-      }
+    // Live update when cart changes (badge + drawer content)
+    window.addEventListener('cart-updated', function(e) {
+      renderDrawer();
+      // Also update nav badge
+      var items = e.detail || [];
+      var total = items.reduce(function(s, i) { return s + i.quantity; }, 0);
+      var badge = document.getElementById('nav-cart-count');
+      var mobileBadge = document.getElementById('mobile-nav-cart-count');
+      if (badge) badge.innerText = total.toString();
+      if (mobileBadge) mobileBadge.innerText = total.toString();
     });
 
-    // Handle interactive clicks inside Cart Drawer
-    itemsList?.addEventListener('click', async (e: any) => {
-      const target = e.target;
-      const productId = parseInt(target.getAttribute('data-id'));
+    // ── Item quantity/remove clicks (event delegation) ─────────────
+    itemsList?.addEventListener('click', function(e) {
+      var target = e.target.closest('button');
+      if (!target) return;
+
+      var productId = parseInt(target.getAttribute('data-id'));
       if (isNaN(productId)) return;
 
-      const currentItem = window.tokCartCache?.find((i: any) => i.productId === productId);
+      var items = readItems();
+      var currentItem = items.find(function(i) { return i.productId === productId; });
       if (!currentItem) return;
 
       if (target.classList.contains('inc-btn')) {
-        updateQty(productId, currentItem.quantity + 1);
+        currentItem.quantity += 1;
       } else if (target.classList.contains('dec-btn')) {
-        updateQty(productId, currentItem.quantity - 1);
+        currentItem.quantity -= 1;
+        if (currentItem.quantity <= 0) {
+          items = items.filter(function(i) { return i.productId !== productId; });
+        }
       } else if (target.classList.contains('remove-item-btn')) {
-        removeItem(productId);
+        items = items.filter(function(i) { return i.productId !== productId; });
+      } else {
+        return;
       }
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+      renderDrawer(); // Re-render immediately
+
+      // Update badge
+      var totalItems = items.reduce(function(s, i) { return s + i.quantity; }, 0);
+      var badge = document.getElementById('nav-cart-count');
+      var mobileBadge = document.getElementById('mobile-nav-cart-count');
+      if (badge) badge.innerText = totalItems.toString();
+      if (mobileBadge) mobileBadge.innerText = totalItems.toString();
+
+      // Notify other listeners (cart page, etc)
+      window.dispatchEvent(new CustomEvent('cart-updated', { detail: items }));
     });
-
-    async function updateQty(productId: number, newQty: number) {
-      if (loadingState) loadingState.style.display = 'flex';
-      if (contentContainer) contentContainer.style.display = 'none';
-
-      try {
-        const res = await fetch('https://backend.tokbd.com/api/guest/cart/update', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            guestId: window.tokGuestId,
-            productId,
-            quantity: newQty
-          })
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          window.tokCartCache = data.cart || [];
-          const totalItems = window.tokCartCache.reduce((acc: number, item: any) => acc + item.quantity, 0);
-          window.updateCartBadgeCount(totalItems);
-          window.dispatchEvent(new CustomEvent('cart-updated', { detail: window.tokCartCache }));
-        }
-      } catch (err) {
-        console.error('Error updating cart quantity:', err);
-      }
-    }
-
-    async function removeItem(productId: number) {
-      if (loadingState) loadingState.style.display = 'flex';
-      if (contentContainer) contentContainer.style.display = 'none';
-
-      try {
-        const res = await fetch('https://backend.tokbd.com/api/guest/cart/remove', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            guestId: window.tokGuestId,
-            productId
-          })
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          window.tokCartCache = data.cart || [];
-          const totalItems = window.tokCartCache.reduce((acc: number, item: any) => acc + item.quantity, 0);
-          window.updateCartBadgeCount(totalItems);
-          window.dispatchEvent(new CustomEvent('cart-updated', { detail: window.tokCartCache }));
-        }
-      } catch (err) {
-        console.error('Error removing product from cart:', err);
-      }
-    }
-  });
+  })();
 </script>

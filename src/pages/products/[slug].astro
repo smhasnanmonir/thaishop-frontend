@@ -1,7 +1,9 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import Breadcrumb from "../../components/ui/Breadcrumb.astro";
 import ProductCard from "../../components/ui/ProductCard.astro";
 import StarRating from "../../components/ui/StarRating.astro";
+import { AddToCartButton, BuyNowButton } from "../../components/ui/buttons";
 import { formatPrice, safeParseArray } from "../../lib/utils";
 import { api } from "../../lib/api";
 
@@ -26,10 +28,15 @@ import type { Product } from "../../lib/api";
 // 2. Fetch specific product content
 let product: Product | null = null;
 let relatedProducts: Product[] = [];
+let brandProducts: Product[] = [];
 
 try {
   product = await api.getProductBySlug(slug);
   relatedProducts = await api.getRandomProducts(4);
+  if (product?.brand_slug) {
+    const brandData = await api.getProductsByBrand(product.brand_slug, 1, 8);
+    brandProducts = (brandData.result || []).filter(p => p.id !== product.id).slice(0, 4);
+  }
 } catch (error) {
   console.error(`Error loading product slug "${slug}" from backend:`, error);
 }
@@ -59,70 +66,104 @@ const sizes = safeParseArray(product.details?.sizes);
   description={`Shop authentic ${product.brand} - ${product.name} imported directly from Bangkok. ${product.details?.description?.slice(0, 120)}...`}
   image={mainImg}
 >
-  <div class="max-w-[1536px] mx-auto px-4 md:px-6 pdp-page">
-    <!-- Breadcrumbs -->
-    <div class="breadcrumb">
-      <a href="/">Home</a> &bull; <a href="/products">Products</a> &bull; <span class="active">{product.name}</span>
-    </div>
+  <div class="max-w-[1536px] mx-auto px-4 md:px-6 pt-4 pb-16 md:pb-24">
+    {/* Breadcrumbs */}
+    <Breadcrumb
+      items={[
+        { label: "Home", href: "/" },
+        { label: product.brand, href: `/brands/${product.brand_slug}` },
+        { label: product.category, href: `/categories/${product.category_slug}` },
+        { label: product.name },
+      ]}
+    />
 
-    <div class="pdp-layout">
-      <!-- Image Gallery Column -->
-      <div class="gallery-column">
-        <div class="main-image-wrapper">
-          <img src={mainImg} alt={product.name} class="main-pdp-image" id="pdp-main-image" />
-          
-          <div class="pdp-badges">
-            {onSale && <span class="badge badge-sale">-{discountPercent}% OFF</span>}
-            {!product.stock && <span class="badge badge-soldout">SOLD OUT</span>}
-            {product.origin_country === "thailand" && <span class="badge badge-thai">100% THAI AUTHENTIC</span>}
+    {/* ═══ PDP 2-column layout ═══ */}
+    <div class="grid grid-cols-1 lg:grid-cols-[42fr_58fr] gap-8 lg:gap-14 items-start mb-16 md:mb-24 overflow-hidden">
+
+      {/* ── Image Gallery Column ── */}
+      <div class="flex flex-col gap-3 min-w-0">
+        <div class="relative w-full pt-[133.33%] bg-surface-card border border-hairline overflow-hidden">
+          <img src={mainImg} alt={product.name} class="absolute inset-0 w-full h-full object-cover" id="pdp-main-image" />
+
+          {/* Badges */}
+          <div class="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+            {onSale && (
+              <span class="inline-flex items-center font-sans text-[10px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none bg-ink text-on-dark">
+                -{discountPercent}% OFF
+              </span>
+            )}
+            {!product.stock && (
+              <span class="inline-flex items-center font-sans text-[10px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none bg-mute text-on-primary">
+                SOLD OUT
+              </span>
+            )}
+            {product.origin_country === "thailand" && (
+              <span class="inline-flex items-center font-sans text-[10px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none bg-primary text-on-primary">
+                100% THAI
+              </span>
+            )}
           </div>
         </div>
 
+        {/* Thumbnail strip */}
         {galleryImages.length > 1 && (
-          <div class="thumbnails-strip">
+          <div class="flex gap-2 overflow-x-auto pb-1">
             {galleryImages.map((img, idx) => (
-              <button class={`thumb-btn ${idx === 0 ? "active" : ""}`} data-img-url={img} aria-label={`View photo ${idx + 1}`}>
-                <img src={img} alt="" />
+              <button
+                class:list={[
+                  "w-[60px] h-[80px] md:w-[70px] md:h-[93px] border shrink-0 p-0 cursor-pointer overflow-hidden bg-canvas transition-colors",
+                  idx === 0 ? "border-primary outline-1 outline-primary" : "border-hairline",
+                ]}
+                data-img-url={img}
+                aria-label={`View photo ${idx + 1}`}
+              >
+                <img src={img} alt="" class="w-full h-full object-cover" />
               </button>
             ))}
           </div>
         )}
       </div>
 
-      <!-- Info Column -->
-      <div class="info-column">
-        <div class="brand-category-row">
-          <span class="brand-tag">{product.brand}</span>
-          <span class="category-divider">&bull;</span>
-          <span class="category-tag">{product.category}</span>
-        </div>
-        <h1 class="product-title font-serif">{product.name}</h1>
-        
-        <!-- Ratings -->
-        <div class="rating-row">
-          <StarRating rating={4.5} count={14} size={16} />
-          <span class="rating-divider">&bull;</span>
-          <span class="origin-tag">Imported from {product.origin_country}</span>
+      {/* ── Info Column ── */}
+      <div class="flex flex-col min-w-0">
+        {/* Brand + Category */}
+        <div class="flex items-center gap-1.5 mb-1.5 flex-wrap">
+          <a href={`/brands/${product.brand_slug}`} class="font-sans text-[11px] font-bold tracking-[2px] uppercase text-primary no-underline hover:text-primary-pressed transition-colors">{product.brand}</a>
+          <span class="text-stone text-[11px]">&bull;</span>
+          <a href={`/categories/${product.category_slug}`} class="font-sans text-[11px] font-bold tracking-[2px] uppercase text-mute no-underline hover:text-primary transition-colors">{product.category}</a>
         </div>
 
-        <!-- Pricing -->
-        <div class="price-box">
-          <span class="price-val">{formatPrice(product.price)}</span>
+        {/* Title */}
+        <h1 class="font-serif text-[28px] md:text-[36px] lg:text-[40px] font-bold text-ink leading-tight m-0 mb-2">{product.name}</h1>
+
+        {/* Ratings */}
+        <div class="flex items-center gap-2 mb-5 flex-wrap">
+          <StarRating rating={4.5} count={14} size={16} />
+          <span class="text-stone">&bull;</span>
+          <span class="font-sans text-[12px] text-mute uppercase tracking-[0.5px]">Imported from {product.origin_country}</span>
+        </div>
+
+        {/* Pricing */}
+        <div class="border-t border-b border-hairline py-3 mb-5 flex items-baseline gap-4 flex-wrap">
+          <span class="font-sans text-[28px] md:text-[32px] font-bold text-ink leading-none">{formatPrice(product.price)}</span>
           {onSale && (
-            <div class="original-price-row">
-              <span class="compare-price">{formatPrice(product.origin_price)}</span>
-              <span class="savings-tag">Save {formatPrice(originalPrice - currentPrice)}</span>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-sans text-[18px] md:text-[20px] text-ash line-through">{formatPrice(product.origin_price)}</span>
+              <span class="font-sans text-[11px] font-bold text-success-deep bg-success-pale px-1.5 py-0.5 uppercase tracking-[0.5px]">Save {formatPrice(originalPrice - currentPrice)}</span>
             </div>
           )}
         </div>
 
-        <!-- Size / Variant Selector -->
+        {/* Size / Variant Selector */}
         {sizes.length > 0 && (
-          <div class="variants-box">
-            <h3 class="variant-label">Select Size</h3>
-            <div class="variant-options">
+          <div class="mb-5">
+            <h3 class="font-sans text-[12px] font-bold tracking-[1px] uppercase text-ink mb-2 m-0">Select Size</h3>
+            <div class="flex gap-1.5 flex-wrap">
               {sizes.map((size, idx) => (
-                <button class={`variant-chip ${idx === 0 ? "active" : ""}`}>
+                <button class:list={[
+                  "border font-sans text-[13px] px-4 py-2 bg-canvas cursor-pointer transition-colors",
+                  idx === 0 ? "border-ink bg-ink text-on-dark" : "border-stone text-ink hover:border-ink",
+                ]}>
                   {size}
                 </button>
               ))}
@@ -130,93 +171,88 @@ const sizes = safeParseArray(product.details?.sizes);
           </div>
         )}
 
-        <!-- Purchase Box -->
-        <div class="purchase-box">
+        {/* Purchase Box */}
+        <div class="mb-8">
           {product.stock ? (
-            <div class="purchase-actions">
-              <!-- Quantity Section -->
-              <div class="qty-section">
-                <span class="qty-label">Quantity</span>
-                <div class="qty-selector">
-                  <button class="qty-btn" id="pdp-qty-dec" aria-label="Decrease quantity">-</button>
-                  <span class="qty-val" id="pdp-qty-val">1</span>
-                  <button class="qty-btn" id="pdp-qty-inc" aria-label="Increase quantity">+</button>
+            <div class="flex flex-col gap-3">
+              {/* Quantity Section */}
+              <div class="flex items-center gap-3">
+                <span class="font-sans text-[12px] font-bold tracking-[1px] text-mute uppercase">Quantity</span>
+                <div class="flex items-center border border-stone h-10 bg-canvas">
+                  <button class="w-9 h-full flex items-center justify-center font-bold text-[16px] cursor-pointer hover:bg-surface-soft transition-colors bg-transparent border-none" id="pdp-qty-dec" aria-label="Decrease quantity">-</button>
+                  <span class="w-9 text-center font-sans text-[14px] font-bold" id="pdp-qty-val">1</span>
+                  <button class="w-9 h-full flex items-center justify-center font-bold text-[16px] cursor-pointer hover:bg-surface-soft transition-colors bg-transparent border-none" id="pdp-qty-inc" aria-label="Increase quantity">+</button>
                 </div>
               </div>
 
-              <!-- CTA Buttons Row -->
-              <div class="cta-row">
-                <button
-                  class="add-to-bag-btn"
+              {/* CTA Buttons Row */}
+              <div class="flex flex-col sm:flex-row gap-2 w-full">
+                <AddToCartButton
                   id="pdp-add-to-bag-btn"
-                  data-id={product.id}
-                  data-name={product.name}
-                >
-                  Add to Bag
-                </button>
-                <button
-                  class="buy-now-btn"
+                  productId={product.id}
+                  name={product.name}
+                  price={currentPrice}
+                  image={mainImg || ""}
+                  slug={product.slug}
+                  quantity={1}
+                />
+                <BuyNowButton
                   id="pdp-buy-now-btn"
-                  data-id={product.id}
-                >
-                  Buy Now
-                </button>
+                  productId={product.id}
+                  name={product.name}
+                  price={currentPrice}
+                  image={mainImg || ""}
+                  slug={product.slug}
+                  quantity={1}
+                />
               </div>
             </div>
           ) : (
-            <div class="out-of-stock-banner">
-              <h3>Currently Sold Out</h3>
-              <p>We restock direct shipments from Bangkok every two weeks. Subscribe to our newsletter to receive restock warnings.</p>
+            <div class="bg-surface-card border border-hairline p-4">
+              <h3 class="font-sans text-[14px] font-bold uppercase text-ink mb-1.5 m-0">Currently Sold Out</h3>
+              <p class="font-sans text-[13px] text-mute leading-relaxed m-0">We restock direct shipments from Bangkok every two weeks.</p>
             </div>
           )}
         </div>
 
-        <!-- Tabbed Information Panel -->
-        <div class="pdp-tabs-container">
-          <div class="tabs-nav" role="tablist">
-            <button class="tab-btn active" data-tab="description" role="tab" aria-selected="true" aria-controls="tab-description-content">Description</button>
+        {/* Tabbed Information Panel */}
+        <div class="border-t border-hairline pt-4">
+          <div class="flex gap-3 border-b border-hairline mb-3 overflow-x-auto" role="tablist" style="scrollbar-width:none">
+            <button class="tab-btn font-sans text-[13px] font-bold tracking-[1px] uppercase text-mute bg-transparent border-none py-1.5 pb-2 cursor-pointer relative whitespace-nowrap transition-colors hover:text-ink active" data-tab="description" role="tab" aria-selected="true">Description</button>
             {product.details?.key_ingredient && (
-              <button class="tab-btn" data-tab="ingredients" role="tab" aria-selected="false" aria-controls="tab-ingredients-content">Key Ingredients</button>
+              <button class="tab-btn font-sans text-[13px] font-bold tracking-[1px] uppercase text-mute bg-transparent border-none py-1.5 pb-2 cursor-pointer relative whitespace-nowrap transition-colors hover:text-ink" data-tab="ingredients" role="tab" aria-selected="false">Key Ingredients</button>
             )}
             {howToUse.length > 0 && (
-              <button class="tab-btn" data-tab="howtouse" role="tab" aria-selected="false" aria-controls="tab-howtouse-content">How To Use</button>
+              <button class="tab-btn font-sans text-[13px] font-bold tracking-[1px] uppercase text-mute bg-transparent border-none py-1.5 pb-2 cursor-pointer relative whitespace-nowrap transition-colors hover:text-ink" data-tab="howtouse" role="tab" aria-selected="false">How To Use</button>
             )}
             {benefits.length > 0 && (
-              <button class="tab-btn" data-tab="benefits" role="tab" aria-selected="false" aria-controls="tab-benefits-content">Key Benefits</button>
+              <button class="tab-btn font-sans text-[13px] font-bold tracking-[1px] uppercase text-mute bg-transparent border-none py-1.5 pb-2 cursor-pointer relative whitespace-nowrap transition-colors hover:text-ink" data-tab="benefits" role="tab" aria-selected="false">Key Benefits</button>
             )}
           </div>
-          
-          <div class="tabs-content">
-            <!-- Description Panel -->
-            <div class="tab-panel active" id="tab-description-content" role="tabpanel">
-              <p>{product.details?.description || "Authentic skincare product imported directly from Thailand. Formulated with premium ingredients to support clear, glowing, and balanced skin."}</p>
+
+          <div class="min-h-[80px] pt-1">
+            <div class="tab-panel font-sans text-[14px] text-body leading-relaxed active" id="tab-description-content" role="tabpanel">
+              <p class="m-0">{product.details?.description || "Authentic skincare product imported directly from Thailand. Formulated with premium ingredients to support clear, glowing, and balanced skin."}</p>
             </div>
-            
-            <!-- Key Ingredients Panel -->
+
             {product.details?.key_ingredient && (
-              <div class="tab-panel" id="tab-ingredients-content" role="tabpanel">
-                <p class="ingredients-list">{product.details?.key_ingredient}</p>
+              <div class="tab-panel font-sans text-[14px] text-body leading-relaxed" id="tab-ingredients-content" role="tabpanel">
+                <p class="m-0 tracking-[0.2px]">{product.details?.key_ingredient}</p>
               </div>
             )}
-            
-            <!-- How to Use Panel -->
+
             {howToUse.length > 0 && (
-              <div class="tab-panel" id="tab-howtouse-content" role="tabpanel">
-                <ol class="steps-list">
-                  {howToUse.map(step => (
-                    <li>{step}</li>
-                  ))}
+              <div class="tab-panel font-sans text-[14px] text-body leading-relaxed" id="tab-howtouse-content" role="tabpanel">
+                <ol class="pl-4 m-0 flex flex-col gap-1.5">
+                  {howToUse.map(step => <li>{step}</li>)}
                 </ol>
               </div>
             )}
-            
-            <!-- Benefits Panel -->
+
             {benefits.length > 0 && (
-              <div class="tab-panel" id="tab-benefits-content" role="tabpanel">
-                <ul class="benefits-list">
-                  {benefits.map(benefit => (
-                    <li>{benefit}</li>
-                  ))}
+              <div class="tab-panel font-sans text-[14px] text-body leading-relaxed" id="tab-benefits-content" role="tabpanel">
+                <ul class="pl-4 m-0 flex flex-col gap-1.5">
+                  {benefits.map(benefit => <li>{benefit}</li>)}
                 </ul>
               </div>
             )}
@@ -225,465 +261,36 @@ const sizes = safeParseArray(product.details?.sizes);
       </div>
     </div>
 
-    <!-- Related Products -->
-    <section class="related-section">
-      <div class="section-header">
-        <span class="section-overline">RITUAL PAIRINGS</span>
-        <h2 class="section-title font-serif">Recommended Products</h2>
+    {/* ═══ Brand Products ═══ */}
+    {brandProducts.length > 0 && (
+      <section class="border-t border-hairline pt-12 md:pt-16 mb-12 md:mb-16">
+        <div class="mb-6 md:mb-8">
+          <span class="font-sans text-[11px] font-bold tracking-[2.5px] uppercase text-primary leading-none">FROM THE SAME BRAND</span>
+          <h2 class="font-serif text-[28px] md:text-[36px] font-bold text-ink m-0 mt-2">More from {product.brand}</h2>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-1 sm:gap-2">
+          {brandProducts.map(prod => <ProductCard product={prod} />)}
+        </div>
+      </section>
+    )}
+
+    {/* ═══ Related Products ═══ */}
+    <section class="border-t border-hairline pt-12 md:pt-16">
+      <div class="mb-6 md:mb-8">
+        <span class="font-sans text-[11px] font-bold tracking-[2.5px] uppercase text-primary leading-none">RITUAL PAIRINGS</span>
+        <h2 class="font-serif text-[28px] md:text-[36px] font-bold text-ink m-0 mt-2">Recommended Products</h2>
       </div>
-      <div class="related-grid">
-        {relatedProducts.map(prod => (
-          <ProductCard product={prod} />
-        ))}
+      <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-1 sm:gap-2">
+        {relatedProducts.map(prod => <ProductCard product={prod} />)}
       </div>
     </section>
   </div>
 </BaseLayout>
 
 <style>
-  .pdp-page {
-    padding-top: var(--spacing-lg);
-    padding-bottom: var(--spacing-section);
-  }
-
-  .breadcrumb {
-    font-family: var(--font-sans);
-    font-size: var(--text-caption);
-    color: var(--color-mute);
-    margin-bottom: var(--spacing-xl);
-  }
-
-  .breadcrumb a {
-    text-decoration: none;
-  }
-
-  .breadcrumb a:hover {
-    color: var(--color-primary);
-  }
-
-  .breadcrumb .active {
-    color: var(--color-ink);
-    font-weight: 600;
-  }
-
-  /* Grid Layout */
-  .pdp-layout {
-    display: grid;
-    grid-template-columns: 42fr 58fr;
-    gap: 60px;
-    align-items: start;
-    margin-bottom: calc(var(--spacing-section) * 1.2);
-  }
-
-  /* Gallery Column */
-  .gallery-column {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-  }
-
-  .main-image-wrapper {
-    position: relative;
-    width: 100%;
-    padding-top: 133.33%; /* 3:4 aspect ratio */
-    background-color: var(--color-surface-card);
-    border: 1px solid var(--color-hairline);
-    overflow: hidden;
-  }
-
-  .main-pdp-image {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .pdp-badges {
-    position: absolute;
-    top: var(--spacing-md);
-    left: var(--spacing-md);
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
-    z-index: 2;
-  }
-
-  .badge {
-    font-family: var(--font-sans);
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    padding: 6px 12px;
-    line-height: 1;
-    border-radius: var(--rounded-none);
-  }
-
-  .badge-sale {
-    background-color: var(--color-ink);
-    color: var(--color-on-dark);
-  }
-
-  .badge-soldout {
-    background-color: var(--color-mute);
-    color: var(--color-on-primary);
-  }
-
-  .badge-thai {
-    background-color: var(--color-primary);
-    color: var(--color-on-primary);
-  }
-
-  .thumbnails-strip {
-    display: flex;
-    gap: var(--spacing-sm);
-    overflow-x: auto;
-  }
-
-  .thumb-btn {
-    width: 70px;
-    height: 93px; /* 3:4 ratio */
-    border: 1px solid var(--color-hairline);
-    background-color: var(--color-canvas);
-    padding: 0;
-    flex-shrink: 0;
-    cursor: pointer;
-    overflow: hidden;
-  }
-
-  .thumb-btn img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .thumb-btn.active {
-    border-color: var(--color-primary);
-    outline: 1px solid var(--color-primary);
-  }
-
-  /* Info Column */
-  .info-column {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .brand-category-row {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-    margin-bottom: var(--spacing-xs);
-  }
-
-  .brand-tag {
-    font-family: var(--font-sans);
-    font-size: var(--text-overline);
-    font-weight: 700;
-    letter-spacing: var(--tracking-overline);
-    color: var(--color-primary);
-    text-transform: uppercase;
-  }
-
-  .category-divider {
-    color: var(--color-stone);
-    font-size: var(--text-overline);
-  }
-
-  .category-tag {
-    font-family: var(--font-sans);
-    font-size: var(--text-overline);
-    font-weight: 700;
-    letter-spacing: var(--tracking-overline);
-    color: var(--color-mute);
-    text-transform: uppercase;
-  }
-
-  .product-title {
-    font-size: var(--text-display-md);
-    font-weight: 700;
-    color: var(--color-ink);
-    line-height: 1.15;
-    margin-bottom: var(--spacing-sm);
-  }
-
-  .rating-row {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    margin-bottom: var(--spacing-xl);
-  }
-
-  .rating-divider {
-    color: var(--color-stone);
-  }
-
-  .origin-tag {
-    font-family: var(--font-sans);
-    font-size: var(--text-caption);
-    color: var(--color-mute);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  /* Pricing Box */
-  .price-box {
-    border-top: 1px solid var(--color-hairline);
-    border-bottom: 1px solid var(--color-hairline);
-    padding: var(--spacing-md) 0;
-    margin-bottom: var(--spacing-xl);
-    display: flex;
-    align-items: baseline;
-    gap: var(--spacing-lg);
-  }
-
-  .price-val {
-    font-family: var(--font-sans);
-    font-size: 32px;
-    font-weight: 700;
-    color: var(--color-ink);
-    line-height: 1;
-  }
-
-  .original-price-row {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-  }
-
-  .compare-price {
-    font-family: var(--font-sans);
-    font-size: 20px;
-    color: var(--color-ash);
-    text-decoration: line-through;
-  }
-
-  .savings-tag {
-    font-family: var(--font-sans);
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--color-success-deep);
-    background-color: var(--color-success-pale);
-    padding: 2px 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  /* Variants */
-  .variants-box {
-    margin-bottom: var(--spacing-xl);
-  }
-
-  .variant-label {
-    font-family: var(--font-sans);
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: var(--color-ink);
-    text-transform: uppercase;
-    margin-bottom: var(--spacing-sm);
-  }
-
-  .variant-options {
-    display: flex;
-    gap: var(--spacing-xs);
-  }
-
-  .variant-chip {
-    border: 1px solid var(--color-stone);
-    font-family: var(--font-sans);
-    font-size: 13px;
-    padding: 8px 16px;
-    background-color: var(--color-canvas);
-    border-radius: var(--rounded-none);
-    cursor: pointer;
-  }
-
-  .variant-chip.active {
-    border-color: var(--color-ink);
-    background-color: var(--color-ink);
-    color: var(--color-on-dark);
-  }
-
-  /* Purchase row */
-  .purchase-box {
-    margin-bottom: var(--spacing-xxl);
-  }
-
-  .purchase-actions {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-  }
-
-  .qty-section {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-  }
-
-  .qty-label {
-    font-family: var(--font-sans);
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: var(--color-mute);
-    text-transform: uppercase;
-  }
-
-  .qty-selector {
-    display: flex;
-    align-items: center;
-    border: 1px solid var(--color-stone);
-    height: 40px;
-    background-color: var(--color-canvas);
-    border-radius: var(--rounded-none);
-  }
-
-  .qty-btn {
-    width: 36px;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background-color 0.15s ease;
-    background: none;
-    border: none;
-  }
-
-  .qty-btn:hover {
-    background-color: var(--color-surface-soft);
-  }
-
-  .qty-val {
-    width: 36px;
-    text-align: center;
-    font-family: var(--font-sans);
-    font-size: 14px;
-    font-weight: 700;
-  }
-
-  .cta-row {
-    display: flex;
-    gap: var(--spacing-sm);
-    width: 100%;
-  }
-
-  .add-to-bag-btn {
-    flex: 1;
-    height: 48px;
-    background-color: var(--color-canvas);
-    color: var(--color-ink);
-    border: 1px solid var(--color-ink);
-    font-family: var(--font-sans);
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: var(--tracking-button);
-    text-transform: uppercase;
-    border-radius: var(--rounded-none);
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .add-to-bag-btn:hover {
-    background-color: var(--color-surface-soft);
-  }
-
-  .buy-now-btn {
-    flex: 1;
-    height: 48px;
-    background-color: var(--color-primary);
-    color: var(--color-on-primary);
-    border: none;
-    font-family: var(--font-sans);
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: var(--tracking-button);
-    text-transform: uppercase;
-    border-radius: var(--rounded-none);
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-  }
-
-  .buy-now-btn:hover {
-    background-color: var(--color-primary-pressed);
-  }
-
-  .buy-now-btn[disabled] {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
-
-  .out-of-stock-banner {
-    background-color: var(--color-surface-card);
-    border: 1px solid var(--color-hairline);
-    padding: var(--spacing-lg);
-    border-radius: var(--rounded-none);
-  }
-
-  .out-of-stock-banner h3 {
-    font-family: var(--font-sans);
-    font-size: 14px;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: var(--color-ink);
-    margin-bottom: var(--spacing-xs);
-  }
-
-  .out-of-stock-banner p {
-    font-size: 13px;
-    color: var(--color-mute);
-    line-height: var(--leading-relaxed);
-  }
-
-  /* Tabs Layout */
-  .pdp-tabs-container {
-    margin-top: var(--spacing-xl);
-    border-top: 1px solid var(--color-hairline);
-    padding-top: var(--spacing-lg);
-  }
-
-  .tabs-nav {
-    display: flex;
-    gap: var(--spacing-md);
-    border-bottom: 1px solid var(--color-hairline);
-    margin-bottom: var(--spacing-md);
-    overflow-x: auto;
-    scrollbar-width: none; /* Firefox */
-  }
-
-  .tabs-nav::-webkit-scrollbar {
-    display: none; /* Safari and Chrome */
-  }
-
-  .tab-btn {
-    font-family: var(--font-sans);
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--color-mute);
-    background: none;
-    border: none;
-    padding: var(--spacing-xs) 0 var(--spacing-sm) 0;
-    cursor: pointer;
-    position: relative;
-    white-space: nowrap;
-    transition: color 0.2s ease;
-  }
-
-  .tab-btn:hover {
-    color: var(--color-ink);
-  }
-
   .tab-btn.active {
-    color: var(--color-ink);
+    color: var(--color-ink, #1A0E14);
   }
-
   .tab-btn.active::after {
     content: '';
     position: absolute;
@@ -691,97 +298,18 @@ const sizes = safeParseArray(product.details?.sizes);
     left: 0;
     width: 100%;
     height: 2px;
-    background-color: var(--color-ink);
+    background-color: var(--color-ink, #1A0E14);
   }
-
-  .tabs-content {
-    min-height: 100px;
-    padding-top: var(--spacing-xs);
-  }
-
   .tab-panel {
     display: none;
     animation: fadeIn 0.25s ease;
-    font-family: var(--font-sans);
-    font-size: 14px;
-    color: var(--color-body);
-    line-height: var(--leading-relaxed);
   }
-
   .tab-panel.active {
     display: block;
   }
-
-  .tab-panel p {
-    margin: 0;
-  }
-
-  .ingredients-list {
-    letter-spacing: 0.2px;
-  }
-
-  .steps-list, .benefits-list {
-    padding-left: var(--spacing-lg);
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
-  }
-
   @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(4px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* Related section */
-  .related-section {
-    border-top: 1px solid var(--color-hairline);
-    padding-top: var(--spacing-section);
-  }
-
-  .section-header {
-    margin-bottom: var(--spacing-xl);
-  }
-
-  .section-title {
-    font-size: var(--text-display-md);
-    color: var(--color-ink);
-  }
-
-  .related-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--spacing-xl);
-  }
-
-  /* Responsive PD */
-  @media (max-width: 900px) {
-    .pdp-layout {
-      grid-template-columns: 1fr;
-      gap: var(--spacing-xl);
-    }
-  }
-
-  @media (max-width: 768px) {
-    .related-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-    .product-title {
-      font-size: 28px;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .related-grid {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-    }
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 </style>
 
@@ -789,15 +317,20 @@ const sizes = safeParseArray(product.details?.sizes);
   document.addEventListener('DOMContentLoaded', () => {
     // 1. Gallery thumbnail selectors
     const mainImage = document.getElementById('pdp-main-image') as HTMLImageElement;
-    const thumbs = document.querySelectorAll('.thumb-btn');
+    const thumbs = document.querySelectorAll('[data-img-url]');
 
     thumbs.forEach((btn) => {
       btn.addEventListener('click', (e) => {
-        // Clear active classes
-        thumbs.forEach((t) => t.classList.remove('active'));
-        
-        const target = e.currentTarget as HTMLButtonElement;
-        target.classList.add('active');
+        thumbs.forEach((t) => {
+          t.classList.remove('border-primary');
+          t.classList.add('border-hairline');
+          (t as HTMLElement).style.outline = '';
+        });
+
+        const target = e.currentTarget as HTMLElement;
+        target.classList.remove('border-hairline');
+        target.classList.add('border-primary');
+        target.style.outline = '1px solid var(--color-primary, #C8365A)';
 
         const newUrl = target.getAttribute('data-img-url');
         if (newUrl && mainImage) {
@@ -806,93 +339,49 @@ const sizes = safeParseArray(product.details?.sizes);
       });
     });
 
-    // 2. Quantity selector hooks
+    // 2. Quantity selector
     const valSpan = document.getElementById('pdp-qty-val');
     const decBtn = document.getElementById('pdp-qty-dec');
     const incBtn = document.getElementById('pdp-qty-inc');
-    
+    const addBtn = document.getElementById('pdp-add-to-bag-btn');
+    const buyBtn = document.getElementById('pdp-buy-now-btn');
+
     let qty = 1;
+
+    function updateQtyButtons() {
+      if (addBtn) addBtn.setAttribute('data-qty', qty.toString());
+      if (buyBtn) buyBtn.setAttribute('data-qty', qty.toString());
+    }
 
     decBtn?.addEventListener('click', () => {
       if (qty > 1) {
         qty--;
         if (valSpan) valSpan.innerText = qty.toString();
+        updateQtyButtons();
       }
     });
 
     incBtn?.addEventListener('click', () => {
       qty++;
       if (valSpan) valSpan.innerText = qty.toString();
+      updateQtyButtons();
     });
 
-    // 3. Add to Bag trigger
-    const addBtn = document.getElementById('pdp-add-to-bag-btn');
-    addBtn?.addEventListener('click', () => {
-      const productId = addBtn.getAttribute('data-id');
-      if (productId) {
-        window.dispatchEvent(new CustomEvent('add-to-cart-action', {
-          detail: { productId, quantity: qty }
-        }));
-      }
-    });
-
-    // 3b. Buy Now trigger
-    const buyNowBtn = document.getElementById('pdp-buy-now-btn');
-    buyNowBtn?.addEventListener('click', async () => {
-      const productId = buyNowBtn.getAttribute('data-id');
-      if (productId) {
-        // Disable button to show loading
-        buyNowBtn.setAttribute('disabled', 'true');
-        const originalText = buyNowBtn.innerText;
-        buyNowBtn.innerText = 'Processing...';
-
-        try {
-          const guestId = (window as any).tokGuestId || localStorage.getItem('tok_guest_id');
-          const res = await fetch('https://backend.tokbd.com/api/guest/cart/add', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              guestId: guestId,
-              productId: parseInt(productId),
-              quantity: qty
-            })
-          });
-
-          if (res.ok) {
-            // Redirect to checkout page directly
-            window.location.href = '/checkout';
-          } else {
-            alert('Failed to add product to cart. Please try again.');
-            buyNowBtn.removeAttribute('disabled');
-            buyNowBtn.innerText = originalText;
-          }
-        } catch (err) {
-          console.error('Failed to buy now:', err);
-          alert('Connection error. Please try again.');
-          buyNowBtn.removeAttribute('disabled');
-          buyNowBtn.innerText = originalText;
-        }
-      }
-    });
-
-    // 4. Tab switcher logic
+    // 3. Tab switcher logic
     const tabBtns = document.querySelectorAll('.tab-btn');
     const tabPanels = document.querySelectorAll('.tab-panel');
 
     tabBtns.forEach((btn) => {
       btn.addEventListener('click', () => {
-        // Remove active class from all buttons and panels
         tabBtns.forEach((b) => {
           b.classList.remove('active');
           b.setAttribute('aria-selected', 'false');
         });
         tabPanels.forEach((p) => p.classList.remove('active'));
 
-        // Set active class on clicked button
         btn.classList.add('active');
         btn.setAttribute('aria-selected', 'true');
 
-        // Show matching panel
         const targetTab = btn.getAttribute('data-tab');
         const targetPanel = document.getElementById(`tab-${targetTab}-content`);
         if (targetPanel) {

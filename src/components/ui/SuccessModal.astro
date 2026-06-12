@@ -1,0 +1,134 @@
+---
+/**
+ * SuccessModal — shown after a product is added to the cart.
+ * Follows Petal DESIGN.md: modal-card spec, zero border-radius,
+ * Cormorant Garamond heading, DM Sans body, primary CTA.
+ */
+---
+
+<div
+  id="add-to-cart-success-modal"
+  data-modal
+  class="fixed inset-0 z-[1200] flex items-center justify-center px-4 invisible opacity-0 transition-all duration-200"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Added to bag"
+>
+  <!-- Scrim -->
+  <div class="absolute inset-0 bg-ink/40" data-close></div>
+
+  <!-- Card -->
+  <div class="modal-card relative w-full max-w-[440px] bg-canvas border border-hairline rounded-none shadow-[0_8px_30px_rgba(26,14,20,0.12)] transition-all duration-200 scale-95 opacity-0">
+    <!-- Close button -->
+    <button
+      class="absolute top-4 right-4 w-11 h-11 flex items-center justify-center text-mute hover:text-ink transition-colors cursor-pointer"
+      aria-label="Close"
+      data-close
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+
+    <div class="p-10 flex flex-col items-center text-center gap-5">
+      <!-- Success icon -->
+      <div class="w-14 h-14 flex items-center justify-center bg-success-pale rounded-none">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#103C25" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+
+      <!-- Heading -->
+      <h3 class="font-serif text-[28px] font-bold text-ink leading-tight m-0">
+        Added to Your Bag
+      </h3>
+
+      <!-- Product preview -->
+      <div class="flex items-center gap-4 w-full" id="success-modal-product-row">
+        <div class="w-[56px] h-[75px] shrink-0 bg-surface-card border border-hairline-soft overflow-hidden">
+          <img id="success-modal-product-img" src="" alt="" class="w-full h-full object-cover" />
+        </div>
+        <div class="flex flex-col items-start gap-0.5 text-left min-w-0">
+          <span class="font-sans text-[14px] font-semibold text-ink line-clamp-2 leading-snug" id="success-modal-product-name">Product</span>
+          <span class="font-serif text-[16px] font-bold text-primary" id="success-modal-product-price">৳0</span>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex flex-col w-full gap-3 mt-1">
+        <a
+          href="/cart"
+          class="flex items-center justify-center bg-primary text-on-primary font-sans text-[13px] font-bold tracking-[1.2px] uppercase h-12 rounded-none no-underline transition-colors duration-150 hover:bg-primary-pressed"
+        >
+          View Bag
+        </a>
+        <button
+          data-close
+          class="flex items-center justify-center bg-transparent text-ink border-2 border-ink font-sans text-[13px] font-bold tracking-[1.2px] uppercase h-12 rounded-none cursor-pointer transition-colors duration-150 hover:bg-secondary-bg"
+        >
+          Continue Shopping
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  /**
+   * SuccessModal controller.
+   * Listens for "show-success-modal" events and manages open/close.
+   */
+  function initSuccessModal() {
+    const root = document.getElementById("add-to-cart-success-modal");
+    if (!root) return;
+
+    const card = root.querySelector(".modal-card") as HTMLElement;
+    const nameEl = document.getElementById("success-modal-product-name");
+    const priceEl = document.getElementById("success-modal-product-price");
+    const imgEl = document.getElementById("success-modal-product-img") as HTMLImageElement;
+
+    function open() {
+      root.classList.remove("invisible", "opacity-0");
+      root.classList.add("visible", "opacity-100");
+      card.classList.remove("scale-95", "opacity-0");
+      card.classList.add("scale-100", "opacity-100");
+      document.body.style.overflow = "hidden";
+    }
+
+    function close() {
+      root.classList.remove("visible", "opacity-100");
+      root.classList.add("invisible", "opacity-0");
+      card.classList.remove("scale-100", "opacity-100");
+      card.classList.add("scale-95", "opacity-0");
+      document.body.style.overflow = "";
+    }
+
+    // Expose globally
+    (window as any).__successModalOpen = open;
+    (window as any).__successModalClose = close;
+
+    // Close buttons
+    root.querySelectorAll("[data-close]").forEach((el) => {
+      el.addEventListener("click", close);
+    });
+
+    // Escape to close
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") close();
+    });
+
+    // Listen for add-to-cart-success events
+    window.addEventListener("add-to-cart-success", ((e: CustomEvent) => {
+      const { name, price, image } = e.detail || {};
+      if (nameEl) nameEl.textContent = name || "Product";
+      if (priceEl) priceEl.textContent = price || "৳0";
+      if (imgEl && image) imgEl.src = image;
+      open();
+    }) as EventListener);
+  }
+
+  // Run on DOMContentLoaded AND on Astro page transitions
+  initSuccessModal();
+  document.addEventListener("astro:after-swap", initSuccessModal);
+</script>
