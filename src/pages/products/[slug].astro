@@ -1,4 +1,5 @@
 ---
+export const prerender = false;
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import Breadcrumb from "../../components/ui/Breadcrumb.astro";
 import ProductCard from "../../components/ui/ProductCard.astro";
@@ -39,16 +40,19 @@ export async function getStaticPaths() {
       page += batch.length;
     }
 
-    console.log(`[getStaticPaths] Generated ${allProducts.length} product paths`);
+    const SSG_LIMIT = 10;
+    console.log(`[getStaticPaths] Generated ${allProducts.length} product paths (SSG: ${Math.min(SSG_LIMIT, allProducts.length)}, SSR: ${Math.max(0, allProducts.length - SSG_LIMIT)})`);
 
-    return allProducts.map(({ slug }) => ({
+    return allProducts.map(({ slug }, idx) => ({
       params: { slug },
+      prerender: idx < SSG_LIMIT,
     }));
   } catch (error) {
     console.error("Error generating static paths for products:", error);
     // Return whatever we managed to fetch
-    return allProducts.map(({ slug }) => ({
+    return allProducts.map(({ slug }, idx) => ({
       params: { slug },
+      prerender: idx < 10,
     }));
   }
 }
@@ -67,7 +71,7 @@ try {
   relatedProducts = await api.getRandomProducts(4);
   if (product?.brand_slug) {
     const brandData = await api.getProductsByBrand(product.brand_slug, 1, 8);
-    brandProducts = (brandData.result || []).filter(p => p.id !== product.id).slice(0, 4);
+    brandProducts = (brandData.result || []).filter(p => p.id !== product!.id).slice(0, 4);
   }
 } catch (error) {
   console.error(`Error loading product slug "${slug}" from backend:`, error);
