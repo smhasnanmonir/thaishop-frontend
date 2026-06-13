@@ -74,12 +74,12 @@ try {
     <div class="mx-auto" style="max-width: 1536px;">
       <div class="flex flex-col items-center text-center gap-2.5 mb-12 md:mb-16 max-w-2xl mx-auto">
         <span class="font-sans text-[12px] font-bold tracking-[2.5px] uppercase text-primary leading-none">BROWSE BY TYPE</span>
-        <h2 class="font-serif text-[34px] md:text-[44px] lg:text-[48px] font-bold text-ink leading-tight m-0">Shop Categories</h2>
+        <h2 class="font-serif text-[34px] md:text-[44px] lg:text-[48px] font-bold text-ink leading-tight m-0">Categories</h2>
       </div>
 
       {categories.length > 0 ? (
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-5">
-          {categories.slice(0, 6).map(cat => (
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-5">
+          {categories.slice(0, 8).map(cat => (
             <CategoryCard category={cat} />
           ))}
         </div>
@@ -95,16 +95,42 @@ try {
     </div>
   </section>
 
-  {/* Section 2: Latest Arrivals */}
-  <section class="bg-surface-soft px-4 md:px-6" style="padding-top: 80px; padding-bottom: 80px;">
+  {/* Section 1b: Top Brands */}
+  <section class="bg-surface-soft px-4 md:px-6 pt-16 md:pt-20 pb-8 md:pb-10">
     <div class="mx-auto" style="max-width: 1536px;">
-      <div class="flex flex-col items-center text-center gap-2.5 mb-12 md:mb-16 max-w-2xl mx-auto">
+      <div class="flex flex-col items-center text-center gap-2.5 mb-8 md:mb-10 max-w-2xl mx-auto">
+        <span class="font-sans text-[12px] font-bold tracking-[2.5px] uppercase text-primary leading-none">BANGKOK DIRECT</span>
+        <h2 class="font-serif text-[34px] md:text-[44px] lg:text-[48px] font-bold text-ink leading-tight m-0">Top Brands</h2>
+      </div>
+
+      {brands.length > 0 ? (
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-5">
+          {brands.sort(() => Math.random() - 0.5).slice(0, 8).map(br => (
+            <BrandCard brand={br} />
+          ))}
+        </div>
+      ) : (
+        <p class="font-sans text-base text-mute py-8 text-center">Loading brands...</p>
+      )}
+
+      <div class="mt-10 text-center">
+        <a href="/brands" class="font-sans text-xs font-bold tracking-[2px] uppercase text-ink no-underline hover:text-primary transition-colors">
+          View All Brands →
+        </a>
+      </div>
+    </div>
+  </section>
+
+  {/* Section 2: Latest Arrivals */}
+  <section class="bg-surface-soft px-4 md:px-6 pt-8 md:pt-10 pb-16 md:pb-20">
+    <div class="mx-auto" style="max-width: 1536px;">
+      <div class="flex flex-col items-center text-center gap-2.5 mb-8 md:mb-10 max-w-2xl mx-auto">
         <span class="font-sans text-[12px] font-bold tracking-[2.5px] uppercase text-primary leading-none">NEWLY IMPORTED</span>
         <h2 class="font-serif text-[34px] md:text-[44px] lg:text-[48px] font-bold text-ink leading-tight m-0">Latest Arrivals</h2>
       </div>
 
       {latestProducts.length > 0 ? (
-        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-3">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 sm:gap-3">
           {latestProducts.map(prod => (
             <ProductCard product={prod} />
           ))}
@@ -132,7 +158,7 @@ try {
               For {selectedConcern.name}
             </h2>
           </div>
-          <a href={`/concerns/${selectedConcern.slug}`} class="view-all-link">
+          <a href={`/concerns/${selectedConcern.slug}`} class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-surface-blush bg-surface-blush text-primary font-sans text-[11px] font-bold uppercase tracking-[1px] no-underline transition-all duration-200 hover:bg-primary hover:text-on-primary hover:border-primary">
             <span>View All</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="9 18 15 12 9 6"></polyline>
@@ -140,7 +166,7 @@ try {
           </a>
         </div>
         
-        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-3">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 sm:gap-3">
           {concernProducts.map(prod => (
             <ProductCard product={prod} />
           ))}
@@ -160,7 +186,7 @@ try {
               For {selectedSkinType.name}
             </h2>
           </div>
-          <a href={`/skin-types/${selectedSkinType.slug}`} class="view-all-link">
+          <a href={`/skin-types/${selectedSkinType.slug}`} class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-surface-blush bg-surface-blush text-primary font-sans text-[11px] font-bold uppercase tracking-[1px] no-underline transition-all duration-200 hover:bg-primary hover:text-on-primary hover:border-primary">
             <span>View All</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="9 18 15 12 9 6"></polyline>
@@ -168,7 +194,7 @@ try {
           </a>
         </div>
         
-        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-3">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 sm:gap-3">
           {skinTypeProducts.map(prod => (
             <ProductCard product={prod} />
           ))}
@@ -188,7 +214,7 @@ try {
               From {selectedBrand.name}
             </h2>
           </div>
-          <a href={`/brands/${selectedBrand.slug}`} class="view-all-link">
+          <a href={`/brands/${selectedBrand.slug}`} class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-surface-blush bg-surface-blush text-primary font-sans text-[11px] font-bold uppercase tracking-[1px] no-underline transition-all duration-200 hover:bg-primary hover:text-on-primary hover:border-primary">
             <span>View All</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="9 18 15 12 9 6"></polyline>
@@ -196,7 +222,7 @@ try {
           </a>
         </div>
         
-        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-3">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 sm:gap-3">
           {brandProducts.map(prod => (
             <ProductCard product={prod} />
           ))}
@@ -214,7 +240,7 @@ try {
       </div>
 
       {concerns.length > 0 ? (
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
           {concerns.slice(0, 4).map(con => (
             <SkinConcernCard concern={con} />
           ))}
@@ -240,7 +266,7 @@ try {
       </div>
 
       {types.length > 0 ? (
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
           {types.slice(0, 4).map(tp => (
             <SkinTypeCard type={tp} />
           ))}
@@ -252,32 +278,6 @@ try {
       <div class="mt-10 text-center">
         <a href="/skin-types" class="font-sans text-xs font-bold tracking-[2px] uppercase text-ink no-underline hover:text-primary transition-colors">
           View All Skin Types →
-        </a>
-      </div>
-    </div>
-  </section>
-
-  {/* Section 5: Featured Brands */}
-  <section class="bg-surface-soft px-4 md:px-6" style="padding-top: 80px; padding-bottom: 80px;">
-    <div class="mx-auto" style="max-width: 1536px;">
-      <div class="flex flex-col items-center text-center gap-2.5 mb-12 md:mb-16 max-w-2xl mx-auto">
-        <span class="font-sans text-[12px] font-bold tracking-[2.5px] uppercase text-primary leading-none">BANGKOK SELECTION</span>
-        <h2 class="font-serif text-[34px] md:text-[44px] lg:text-[48px] font-bold text-ink leading-tight m-0">Featured Thai Brands</h2>
-      </div>
-
-      {brands.length > 0 ? (
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {brands.slice(0, 4).map(br => (
-            <BrandCard brand={br} />
-          ))}
-        </div>
-      ) : (
-        <p class="font-sans text-base text-mute py-8 text-center">Loading brands...</p>
-      )}
-
-      <div class="mt-10 text-center">
-        <a href="/brands" class="font-sans text-xs font-bold tracking-[2px] uppercase text-ink no-underline hover:text-primary transition-colors">
-          View All Brands →
         </a>
       </div>
     </div>
@@ -296,29 +296,3 @@ try {
     </div>
   </section>
 </BaseLayout>
-
-<style>
-  .view-all-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 16px;
-    border-radius: 9999px;
-    border: 1px solid var(--color-surface-blush);
-    background-color: var(--color-surface-blush);
-    color: var(--color-primary);
-    font-family: var(--font-sans);
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    text-decoration: none;
-    transition: all 0.2s ease;
-  }
-
-  .view-all-link:hover {
-    background-color: var(--color-primary);
-    color: var(--color-on-primary);
-    border-color: var(--color-primary);
-  }
-</style>

@@ -29,34 +29,33 @@ try {
 
       <span class="font-sans text-[12px] font-bold tracking-[2.5px] uppercase text-primary leading-none">SEARCH RESULTS</span>
       <h1 class="font-serif text-[34px] md:text-[44px] lg:text-[48px] font-bold text-ink leading-tight m-0">Search Results</h1>
-      <p class="font-sans text-sm md:text-base text-mute m-0 mt-2  leading-relaxed" id="search-query-label">
+      <p class="font-sans text-sm md:text-base text-mute m-0 mt-2 leading-relaxed" id="search-query-label">
         Searching for products...
       </p>
     </div>
 
     <!-- Shimmer Loader -->
-    <div class="shimmer-loader" id="search-shimmer">
-      <div class="shimmer-card"></div>
-      <div class="shimmer-card"></div>
-      <div class="shimmer-card"></div>
-      <div class="shimmer-card"></div>
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="search-shimmer">
+      {Array(4).fill(0).map(() => (
+        <div class="h-[380px] bg-gradient-to-r from-surface-soft via-secondary-bg to-surface-soft bg-[length:200%_100%] animate-[shimmer_1.5s_infinite]" />
+      ))}
     </div>
 
     <!-- Empty State -->
-    <div class="empty-state" id="search-empty" style="display: none;">
-      <div class="empty-icon">
+    <div class="hidden flex-col items-center text-center gap-3 py-6" id="search-empty">
+      <div class="text-stone">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
       </div>
-      <h2>No Matches Found</h2>
-      <p class="empty-text">We couldn't find any products matching your query. Try different keywords or check spelling.</p>
+      <h2 class="font-serif text-[24px] text-ink m-0">No Matches Found</h2>
+      <p class="font-sans text-[15px] text-mute max-w-[500px] leading-relaxed m-0">We couldn't find any products matching your query. Try different keywords or check spelling.</p>
       
       <!-- Fallbacks -->
-      <div class="fallbacks-section">
-        <h3>Recommended For You</h3>
-        <div class="fallbacks-grid">
+      <div class="w-full border-t border-hairline pt-8 mt-8 text-left">
+        <h3 class="font-serif text-[22px] text-ink mb-4">Recommended For You</h3>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {fallbackProducts.map(prod => (
             <ProductCard product={prod} />
           ))}
@@ -65,106 +64,14 @@ try {
     </div>
 
     <!-- Results Grid -->
-    <div class="results-grid" id="search-results-grid" style="display: none;">
-      <!-- Populated client-side -->
-    </div>
+    <div class="hidden grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="search-results-grid" />
   </div>
 </BaseLayout>
 
 <style>
-  /* Shimmer */
-  .shimmer-loader {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--spacing-xl);
-  }
-
-  .shimmer-card {
-    height: 380px;
-    background: linear-gradient(90deg, var(--color-surface-soft) 25%, var(--color-secondary-bg) 50%, var(--color-surface-soft) 75%);
-    background-size: 200% 100%;
-    animation: search-shimmer-anim 1.5s infinite;
-  }
-
-  /* Grid */
-  .results-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--spacing-xl);
-  }
-
-  /* Empty state */
-  .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: var(--spacing-md);
-    padding: var(--spacing-xl) 0;
-  }
-
-  .empty-icon {
-    color: var(--color-stone);
-  }
-
-  .empty-state h2 {
-    font-family: var(--font-serif);
-    font-size: 24px;
-    color: var(--color-ink);
-  }
-
-  .empty-text {
-    font-family: var(--font-sans);
-    font-size: 15px;
-    color: var(--color-mute);
-    max-width: 500px;
-    line-height: var(--leading-relaxed);
-  }
-
-  .fallbacks-section {
-    width: 100%;
-    border-top: 1px solid var(--color-hairline);
-    padding-top: var(--spacing-xxl);
-    margin-top: var(--spacing-xxl);
-    text-align: left;
-  }
-
-  .fallbacks-section h3 {
-    font-family: var(--font-serif);
-    font-size: 22px;
-    color: var(--color-ink);
-    margin-bottom: var(--spacing-lg);
-  }
-
-  .fallbacks-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--spacing-xl);
-  }
-
-  @keyframes search-shimmer-anim {
+  @keyframes shimmer {
     0% { background-position: 200% 0; }
     100% { background-position: -200% 0; }
-  }
-
-  /* Responsive styling */
-  @media (max-width: 1024px) {
-    .results-grid, .shimmer-loader, .fallbacks-grid {
-      grid-template-columns: repeat(3, 1fr);
-    }
-  }
-
-  @media (max-width: 768px) {
-    .results-grid, .shimmer-loader, .fallbacks-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-
-  @media (max-width: 480px) {
-    .results-grid, .shimmer-loader, .fallbacks-grid {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-    }
   }
 </style>
 

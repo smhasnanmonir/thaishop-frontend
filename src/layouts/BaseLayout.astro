@@ -3,6 +3,7 @@ import MarqueeBanner from "../components/navigation/MarqueeBanner.astro";
 import PrimaryNav from "../components/navigation/PrimaryNav.astro";
 import Footer from "../components/navigation/Footer.astro";
 import CartDrawer from "../components/features/CartDrawer.astro";
+import SearchOverlay from "../components/features/SearchOverlay.astro";
 import SuccessModal from "../components/ui/SuccessModal.astro";
 import "../styles/global.css";
 
@@ -68,6 +69,9 @@ const canonicalUrl = new URL(Astro.url.pathname, "https://tokbd.com").toString()
     
     <!-- Navigation Chrome -->
     <PrimaryNav />
+
+    <!-- Search Overlay -->
+    <SearchOverlay />
 
     <!-- Main Content Area -->
     <main>

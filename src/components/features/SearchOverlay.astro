@@ -1,0 +1,155 @@
+---
+import BrandCard from "../ui/BrandCard.astro";
+import ProductCard from "../ui/ProductCard.astro";
+import { api } from "../../lib/api";
+import type { Brand, Product } from "../../lib/api";
+
+// Fetch data server-side
+let brands: Brand[] = [];
+let products: Product[] = [];
+
+try {
+  const homeData = await api.getHomeContent();
+  brands = (homeData.brands || []).sort(() => Math.random() - 0.5).slice(0, 6);
+  products = await api.getRandomProducts(6);
+} catch (error) {
+  console.error("Error loading search overlay data:", error);
+}
+---
+
+<!-- Full Screen Search Overlay -->
+<div
+  class="fixed inset-0 bg-canvas z-[1001] opacity-0 invisible transition-all duration-200 data-[open]:opacity-100 data-[open]:visible flex flex-col"
+  id="search-overlay-panel"
+  data-state="closed"
+>
+  <!-- Search Header -->
+  <div class="border-b border-hairline bg-canvas sticky top-0 z-10">
+    <div class="max-w-[1536px] mx-auto px-6 py-5 flex items-center gap-4">
+      <form action="/search" method="GET" class="grow">
+        <div class="flex items-center bg-surface-card border border-hairline h-12 transition-colors duration-150 focus-within:bg-canvas focus-within:border-ink focus-within:border-2">
+          <div class="flex items-center justify-center w-12 h-full text-mute">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </div>
+          <input
+            type="search"
+            name="q"
+            placeholder="Search products, brands, ingredients..."
+            required
+            class="grow font-sans text-[15px] text-ink h-full bg-transparent border-none outline-none placeholder-stone"
+            id="search-input-field"
+            autocomplete="off"
+          />
+        </div>
+      </form>
+      <button
+        class="hidden md:flex items-center gap-2 h-12 px-5 bg-transparent text-mute border border-hairline font-sans text-[12px] font-bold uppercase tracking-[1px] cursor-pointer hover:text-ink hover:border-ink transition-colors duration-150"
+        id="search-close-btn"
+        aria-label="Close Search"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+        <span>Close</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Search Content -->
+  <div class="grow overflow-y-auto">
+    <div class="max-w-[1536px] mx-auto px-6 py-8 md:py-10">
+      <!-- Popular Searches -->
+      <div class="mb-10 md:mb-12">
+        <span class="font-sans text-[11px] font-bold tracking-[2px] uppercase text-mute mb-4 block">Popular Searches</span>
+        <div class="flex flex-wrap gap-2">
+          <a href="/search?q=serum" class="inline-flex items-center px-4 py-2.5 bg-surface-card border border-hairline font-sans text-[13px] text-ink no-underline hover:bg-surface-blush hover:border-primary transition-colors duration-150">Serum</a>
+          <a href="/search?q=sunscreen" class="inline-flex items-center px-4 py-2.5 bg-surface-card border border-hairline font-sans text-[13px] text-ink no-underline hover:bg-surface-blush hover:border-primary transition-colors duration-150">Sunscreen</a>
+          <a href="/search?q=moisturizer" class="inline-flex items-center px-4 py-2.5 bg-surface-card border border-hairline font-sans text-[13px] text-ink no-underline hover:bg-surface-blush hover:border-primary transition-colors duration-150">Moisturizer</a>
+          <a href="/search?q=cleanser" class="inline-flex items-center px-4 py-2.5 bg-surface-card border border-hairline font-sans text-[13px] text-ink no-underline hover:bg-surface-blush hover:border-primary transition-colors duration-150">Cleanser</a>
+          <a href="/search?q=acne" class="inline-flex items-center px-4 py-2.5 bg-surface-card border border-hairline font-sans text-[13px] text-ink no-underline hover:bg-surface-blush hover:border-primary transition-colors duration-150">Acne</a>
+          <a href="/search?q=vitamin c" class="inline-flex items-center px-4 py-2.5 bg-surface-card border border-hairline font-sans text-[13px] text-ink no-underline hover:bg-surface-blush hover:border-primary transition-colors duration-150">Vitamin C</a>
+          <a href="/search?q=toner" class="inline-flex items-center px-4 py-2.5 bg-surface-card border border-hairline font-sans text-[13px] text-ink no-underline hover:bg-surface-blush hover:border-primary transition-colors duration-150">Toner</a>
+          <a href="/search?q=essence" class="inline-flex items-center px-4 py-2.5 bg-surface-card border border-hairline font-sans text-[13px] text-ink no-underline hover:bg-surface-blush hover:border-primary transition-colors duration-150">Essence</a>
+        </div>
+      </div>
+
+      <!-- Recommended Brands -->
+      {brands.length > 0 && (
+        <div class="mb-10 md:mb-12">
+          <div class="flex items-center justify-between mb-5">
+            <span class="font-sans text-[11px] font-bold tracking-[2px] uppercase text-mute">Popular Brands</span>
+            <a href="/brands" class="font-sans text-[12px] font-semibold text-primary no-underline hover:text-primary-pressed transition-colors">View All →</a>
+          </div>
+          <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+            {brands.map((brand) => (
+              <BrandCard brand={brand} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <!-- Recommended Products -->
+      {products.length > 0 && (
+        <div>
+          <div class="flex items-center justify-between mb-5">
+            <span class="font-sans text-[11px] font-bold tracking-[2px] uppercase text-mute">Recommended For You</span>
+            <a href="/products" class="font-sans text-[12px] font-semibold text-primary no-underline hover:text-primary-pressed transition-colors">View All →</a>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {products.map((product) => (
+              <ProductCard product={product} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <!-- Bottom Close Button -->
+      <div class="mt-10 md:mt-14 mb-6 flex justify-center">
+        <button
+          class="inline-flex items-center justify-center h-12 px-8 bg-transparent text-ink border-2 border-ink font-sans text-[13px] font-bold uppercase tracking-[1.2px] rounded-none cursor-pointer transition-all duration-150 whitespace-nowrap no-underline hover:bg-surface-blush active:bg-surface-blush"
+          id="search-close-bottom-btn"
+        >
+          Close Search
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const searchToggleBtn = document.getElementById("search-toggle-btn");
+    const searchCloseBtn = document.getElementById("search-close-btn");
+    const searchCloseBottomBtn = document.getElementById("search-close-bottom-btn");
+    const searchOverlay = document.getElementById("search-overlay-panel");
+    const searchInputField = document.getElementById("search-input-field");
+
+    function openSearch() {
+      searchOverlay?.setAttribute("data-open", "");
+      searchOverlay?.setAttribute("data-state", "open");
+      document.body.classList.add("search-open");
+      setTimeout(() => searchInputField?.focus(), 100);
+    }
+
+    function closeSearch() {
+      searchOverlay?.removeAttribute("data-open");
+      searchOverlay?.setAttribute("data-state", "closed");
+      document.body.classList.remove("search-open");
+    }
+
+    searchToggleBtn?.addEventListener("click", openSearch);
+    searchCloseBtn?.addEventListener("click", closeSearch);
+    searchCloseBottomBtn?.addEventListener("click", closeSearch);
+
+    // ESC key closes search
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && searchOverlay?.dataset.state === "open") {
+        closeSearch();
+      }
+    });
+  });
+</script>

@@ -7,17 +7,49 @@ import { AddToCartButton, BuyNowButton } from "../../components/ui/buttons";
 import { formatPrice, safeParseArray } from "../../lib/utils";
 import { api } from "../../lib/api";
 
-// 1. Static paths generation for SSG
+// 1. Static paths generation for SSG — fetch ALL products across all pages
 export async function getStaticPaths() {
+  const PAGE_SIZE = 100;
+  let allProducts: { slug: string }[] = [];
+  let page = 1;
+  let totalPages = 1;
+
   try {
-    const productsData = await api.getAllProducts(1, 10);
-    const list = productsData.result || [];
-    return list.map((prod) => ({
-      params: { slug: prod.slug },
+    // First request to get total count
+    const firstPage = await api.getAllProducts(page, PAGE_SIZE);
+    allProducts = (firstPage.result || []).map((prod) => ({ slug: prod.slug }));
+    totalPages = firstPage.totalPages || 1;
+
+    // Fetch remaining pages in parallel batches of 4
+    while (page < totalPages) {
+      const batch: number[] = [];
+      for (let i = 1; i <= 4 && page + i <= totalPages; i++) {
+        batch.push(page + i);
+      }
+
+      const results = await Promise.all(
+        batch.map((p) => api.getAllProducts(p, PAGE_SIZE))
+      );
+
+      for (const data of results) {
+        const slugs = (data.result || []).map((prod) => ({ slug: prod.slug }));
+        allProducts.push(...slugs);
+      }
+
+      page += batch.length;
+    }
+
+    console.log(`[getStaticPaths] Generated ${allProducts.length} product paths`);
+
+    return allProducts.map(({ slug }) => ({
+      params: { slug },
     }));
   } catch (error) {
     console.error("Error generating static paths for products:", error);
-    return [];
+    // Return whatever we managed to fetch
+    return allProducts.map(({ slug }) => ({
+      params: { slug },
+    }));
   }
 }
 
