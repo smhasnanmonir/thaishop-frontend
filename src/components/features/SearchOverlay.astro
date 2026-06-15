@@ -46,6 +46,17 @@ try {
         </div>
       </form>
       <button
+        class="flex md:hidden items-center justify-center w-10 h-10 text-mute hover:text-ink transition-colors duration-150 cursor-pointer shrink-0"
+        id="search-close-btn-mobile"
+        aria-label="Close Search"
+        type="button"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      <button
         class="hidden md:flex items-center gap-2 h-12 px-5 bg-transparent text-mute border border-hairline font-sans text-[12px] font-bold uppercase tracking-[1px] cursor-pointer hover:text-ink hover:border-ink transition-colors duration-150"
         id="search-close-btn"
         aria-label="Close Search"
@@ -84,7 +95,7 @@ try {
             <span class="font-sans text-[11px] font-bold tracking-[2px] uppercase text-mute">Popular Brands</span>
             <a href="/brands" class="font-sans text-[12px] font-semibold text-primary no-underline hover:text-primary-pressed transition-colors">View All →</a>
           </div>
-          <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+          <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
             {brands.map((brand) => (
               <BrandCard brand={brand} />
             ))}
@@ -99,7 +110,7 @@ try {
             <span class="font-sans text-[11px] font-bold tracking-[2px] uppercase text-mute">Recommended For You</span>
             <a href="/products" class="font-sans text-[12px] font-semibold text-primary no-underline hover:text-primary-pressed transition-colors">View All →</a>
           </div>
-          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3">
             {products.map((product) => (
               <ProductCard product={product} />
             ))}
@@ -121,9 +132,10 @@ try {
 </div>
 
 <script>
-  document.addEventListener("DOMContentLoaded", () => {
+  function initSearchOverlay() {
     const searchToggleBtn = document.getElementById("search-toggle-btn");
     const searchCloseBtn = document.getElementById("search-close-btn");
+    const searchCloseBtnMobile = document.getElementById("search-close-btn-mobile");
     const searchCloseBottomBtn = document.getElementById("search-close-bottom-btn");
     const searchOverlay = document.getElementById("search-overlay-panel");
     const searchInputField = document.getElementById("search-input-field");
@@ -143,6 +155,7 @@ try {
 
     searchToggleBtn?.addEventListener("click", openSearch);
     searchCloseBtn?.addEventListener("click", closeSearch);
+    searchCloseBtnMobile?.addEventListener("click", closeSearch);
     searchCloseBottomBtn?.addEventListener("click", closeSearch);
 
     // ESC key closes search
@@ -151,5 +164,11 @@ try {
         closeSearch();
       }
     });
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener("DOMContentLoaded", initSearchOverlay);
+  } else {
+    initSearchOverlay();
+  }
 </script>

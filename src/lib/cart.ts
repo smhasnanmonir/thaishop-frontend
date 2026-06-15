@@ -58,6 +58,10 @@ export function getSubtotal(): number {
   return readItems().reduce((s, i) => s + i.price * i.quantity, 0);
 }
 
+export function notifyChange(): void {
+  emit();
+}
+
 export function addItem(item: Omit<CartItem, "quantity"> & { quantity?: number }): void {
   const items = readItems();
   const existing = items.find((i) => i.productId === item.productId);

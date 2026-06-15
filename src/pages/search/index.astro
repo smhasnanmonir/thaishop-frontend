@@ -1,4 +1,5 @@
 ---
+export const prerender = true;
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import ProductCard from "../../components/ui/ProductCard.astro";
 import { api } from "../../lib/api";
@@ -35,7 +36,7 @@ try {
     </div>
 
     <!-- Shimmer Loader -->
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="search-shimmer">
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3" id="search-shimmer">
       {Array(4).fill(0).map(() => (
         <div class="h-[380px] bg-gradient-to-r from-surface-soft via-secondary-bg to-surface-soft bg-[length:200%_100%] animate-[shimmer_1.5s_infinite]" />
       ))}
@@ -55,7 +56,7 @@ try {
       <!-- Fallbacks -->
       <div class="w-full border-t border-hairline pt-8 mt-8 text-left">
         <h3 class="font-serif text-[22px] text-ink mb-4">Recommended For You</h3>
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
           {fallbackProducts.map(prod => (
             <ProductCard product={prod} />
           ))}
@@ -64,7 +65,7 @@ try {
     </div>
 
     <!-- Results Grid -->
-    <div class="hidden grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="search-results-grid" />
+    <div class="hidden grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3" id="search-results-grid" />
   </div>
 </BaseLayout>
 
@@ -77,7 +78,7 @@ try {
 
 <script>
   // Dynamic client search query loader
-  document.addEventListener('DOMContentLoaded', async () => {
+  async function initSearchPage() {
     const urlParams = new URLSearchParams(window.location.search);
     const query = urlParams.get('q')?.trim() || '';
 
@@ -91,89 +92,116 @@ try {
       return '৳' + val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     }
 
+    function escapeAttr(value: string): string {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function showOnly(el: HTMLElement | null, mode: 'flex' | 'grid' | 'block' | 'none') {
+      if (!el) return;
+      if (mode === 'none') el.style.display = 'none';
+      else el.style.display = mode;
+    }
+
     if (!query) {
-      if (label) label.innerText = 'No search query provided. Please input a search keyword.';
-      if (shimmer) shimmer.style.display = 'none';
-      if (emptyState) emptyState.style.display = 'flex';
+      if (label) label.textContent = 'No search query provided. Please input a search keyword.';
+      showOnly(shimmer, 'none');
+      showOnly(emptyState, 'flex');
+      showOnly(resultsGrid, 'none');
       return;
     }
 
-    if (label) label.innerText = `Showing results for "${query}"`;
+    if (label) label.textContent = `Showing results for "${query}"`;
 
     try {
       const res = await fetch(`https://backend.tokbd.com/api/products/search?q=${encodeURIComponent(query)}`);
-      if (res.ok) {
-        const data = await res.json();
-        const products = data.result || [];
+      if (!res.ok) throw new Error('Search request failed');
 
-        if (shimmer) shimmer.style.display = 'none';
+      const data = await res.json();
+      const products = data.result || [];
 
-        if (products.length === 0) {
-          if (emptyState) emptyState.style.display = 'flex';
-          return;
-        }
+      showOnly(shimmer, 'none');
 
-        if (resultsGrid) {
-          resultsGrid.innerHTML = '';
-          
-          products.forEach((prod: any) => {
-            const currentPrice = parseFloat(prod.price);
-            const originalPrice = parseFloat(prod.origin_price);
-            const onSale = originalPrice > currentPrice;
-            const discountPercent = onSale ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100) : 0;
-            const imgUrl = prod.card_photo || prod.img || "https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?q=80&w=400&auto=format&fit=crop";
+      if (products.length === 0) {
+        showOnly(emptyState, 'flex');
+        showOnly(resultsGrid, 'none');
+        return;
+      }
 
-            const card = document.createElement('div');
-            card.className = 'group flex flex-col bg-white border border-hairline-soft rounded-none';
-            card.setAttribute('data-id', prod.id);
-            card.innerHTML = `
-              <a href="/products/${prod.slug}" class="block relative" aria-label="View details for ${prod.name}">
-                <div class="relative w-full aspect-square sm:aspect-[3/4] bg-surface-card overflow-hidden">
-                  <img src="${imgUrl}" alt="${prod.name}" class="absolute inset-0 w-full h-full object-cover" loading="lazy" />
-                  <div class="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
-                    ${onSale ? `<span class="inline-flex items-center font-sans text-[12px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none rounded-none bg-ink text-on-dark">SALE -${discountPercent}%</span>` : ''}
-                    ${!prod.stock ? `<span class="inline-flex items-center font-sans text-[11px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none rounded-none bg-mute text-on-primary">SOLD OUT</span>` : ''}
-                    ${prod.origin_country === 'thailand' ? `<span class="inline-flex items-center font-sans text-[11px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none rounded-none bg-accent-gold text-on-dark">THAI</span>` : ''}
-                  </div>
-                </div>
-              </a>
-              <div class="flex flex-col flex-1 p-3.5 sm:p-5 gap-3">
-                <span class="font-sans text-[12px] md:text-[13px] font-bold tracking-[2px] uppercase text-mute">${prod.brand}</span>
-                <a href="/products/${prod.slug}" class="no-underline text-ink block flex-1">
-                  <h3 class="font-sans text-[15px] md:text-[16px] font-semibold leading-[1.4] line-clamp-2 text-ink m-0">${prod.name}</h3>
-                </a>
-                <div class="flex items-baseline gap-2 mt-1">
-                  <span class="font-sans text-[20px] md:text-[22px] font-bold text-ink leading-none">${formatBDT(currentPrice)}</span>
-                  ${onSale ? `<span class="font-sans text-[14px] md:text-[15px] text-ash line-through">${formatBDT(originalPrice)}</span>` : ''}
-                </div>
-                <div class="mt-auto pt-4">
-                  ${prod.stock ? `
-                    <button class="flex items-center justify-center gap-1.5 sm:gap-2 w-full h-12 px-2 sm:px-6 bg-primary text-on-primary font-sans text-[11px] sm:text-[13px] font-bold tracking-[0.5px] sm:tracking-[1.2px] uppercase rounded-none cursor-pointer hover:bg-primary-pressed active:bg-primary-pressed transition-colors duration-150 whitespace-nowrap" data-add-to-cart data-id="${prod.id}" data-name="${prod.name}" data-price="${prod.price}" data-img="${imgUrl}" data-slug="${prod.slug}">
-                      <svg class="hidden sm:block" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path>
-                        <line x1="3" y1="6" x2="21" y2="6"></line>
-                        <path d="M16 10a4 4 0 01-8 0"></path>
-                      </svg>
-                      <span>Add to Bag</span>
-                    </button>
-                  ` : `
-                    <span class="flex items-center justify-center w-full h-12 px-2 border border-hairline-soft font-sans text-[11px] sm:text-[13px] font-semibold text-mute uppercase rounded-none bg-surface-soft whitespace-nowrap">Out of Stock</span>
-                  `}
+      if (resultsGrid) {
+        resultsGrid.innerHTML = '';
+
+        products.forEach((prod: any) => {
+          const currentPrice = parseFloat(prod.price);
+          const originalPrice = parseFloat(prod.origin_price);
+          const onSale = originalPrice > currentPrice;
+          const discountPercent = onSale ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100) : 0;
+          const imgUrl = prod.card_photo || prod.img || 'https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?q=80&w=400&auto=format&fit=crop';
+          const safeSlug = escapeAttr(prod.slug || String(prod.id));
+          const safeName = escapeAttr(prod.name || '');
+          const safeBrand = escapeAttr(prod.brand || '');
+          const safeImg = escapeAttr(imgUrl);
+          const safeAria = escapeAttr(`View details for ${prod.name || ''}`);
+
+          const card = document.createElement('div');
+          card.className = 'group flex flex-col bg-white border border-hairline-soft';
+          card.setAttribute('data-id', String(prod.id));
+          card.innerHTML = `
+            <a href="/products/${safeSlug}" class="block relative" aria-label="${safeAria}">
+              <div class="relative w-full aspect-square sm:aspect-[3/4] bg-surface-card overflow-hidden">
+                <img src="${safeImg}" alt="${safeName}" loading="lazy" decoding="async" class="absolute inset-0 w-full h-full object-cover" />
+                <div class="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+                  ${onSale ? `<span class="inline-flex items-center font-sans text-[10px] sm:text-[12px] font-bold tracking-[1.5px] uppercase px-2 py-1 sm:px-3 sm:py-1.5 leading-none bg-ink text-on-dark">-${discountPercent}%</span>` : ''}
+                  ${!prod.stock ? `<span class="inline-flex items-center font-sans text-[11px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none bg-mute text-on-primary">SOLD OUT</span>` : ''}
+                  ${prod.origin_country === 'thailand' ? `<span class="inline-flex items-center font-sans text-[11px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none bg-accent-gold text-on-dark">THAI</span>` : ''}
                 </div>
               </div>
-            `;
-            resultsGrid.appendChild(card);
-          });
+            </a>
+            <div class="flex flex-col flex-1 p-3.5 sm:p-5 gap-3">
+              <span class="font-sans text-[12px] md:text-[13px] font-bold tracking-[2px] uppercase text-mute">${safeBrand}</span>
+              <a href="/products/${safeSlug}" class="no-underline text-ink block flex-1">
+                <h3 class="font-sans text-[13px] md:text-[15px] font-semibold leading-[1.4] line-clamp-2 text-ink m-0">${safeName}</h3>
+              </a>
+              <div class="flex items-baseline gap-2 mt-1">
+                <span class="font-sans text-[20px] md:text-[22px] font-bold text-ink leading-none">${formatBDT(currentPrice)}</span>
+                ${onSale ? `<span class="font-sans text-[14px] md:text-[15px] text-ash line-through">${formatBDT(originalPrice)}</span>` : ''}
+              </div>
+              <div class="mt-auto pt-4">
+                ${prod.stock ? `
+                  <button class="flex items-center justify-center gap-1.5 sm:gap-2 w-full h-14 sm:h-12 px-2 sm:px-6 bg-primary text-on-primary font-sans text-[11px] sm:text-[13px] font-bold tracking-[0.5px] sm:tracking-[1.2px] uppercase cursor-pointer hover:bg-primary-pressed active:bg-primary-pressed transition-colors duration-150 whitespace-nowrap" data-add-to-cart data-id="${prod.id}" data-name="${escapeAttr(prod.name || '')}" data-price="${prod.price}" data-img="${safeImg}" data-slug="${escapeAttr(prod.slug || '')}" aria-label="Add ${safeName} to bag">
+                    <svg class="hidden sm:block" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path>
+                      <line x1="3" y1="6" x2="21" y2="6"></line>
+                      <path d="M16 10a4 4 0 01-8 0"></path>
+                    </svg>
+                    <span>Add to Bag</span>
+                  </button>
+                ` : `
+                  <span class="flex items-center justify-center w-full h-14 sm:h-12 px-2 border border-hairline-soft font-sans text-[11px] sm:text-[13px] font-semibold text-mute uppercase bg-surface-soft whitespace-nowrap">Out of Stock</span>
+                `}
+              </div>
+            </div>
+          `;
+          resultsGrid.appendChild(card);
+        });
 
-          resultsGrid.style.display = 'grid';
-        }
-      } else {
-        throw new Error('Search request failed');
+        showOnly(resultsGrid, 'grid');
+        showOnly(emptyState, 'none');
       }
     } catch (err) {
       console.error('Error fetching search results:', err);
-      if (shimmer) shimmer.style.display = 'none';
-      if (emptyState) emptyState.style.display = 'flex';
+      showOnly(shimmer, 'none');
+      showOnly(emptyState, 'flex');
+      showOnly(resultsGrid, 'none');
     }
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSearchPage);
+  } else {
+    initSearchPage();
+  }
 </script>

@@ -5,61 +5,12 @@ import Breadcrumb from "../../components/ui/Breadcrumb.astro";
 import ProductCard from "../../components/ui/ProductCard.astro";
 import StarRating from "../../components/ui/StarRating.astro";
 import { AddToCartButton, BuyNowButton } from "../../components/ui/buttons";
+import { ProductSchema, BreadcrumbSchema } from "../../components/seo";
 import { formatPrice, safeParseArray } from "../../lib/utils";
 import { api } from "../../lib/api";
-
-// 1. Static paths generation for SSG — fetch ALL products across all pages
-export async function getStaticPaths() {
-  const PAGE_SIZE = 100;
-  let allProducts: { slug: string }[] = [];
-  let page = 1;
-  let totalPages = 1;
-
-  try {
-    // First request to get total count
-    const firstPage = await api.getAllProducts(page, PAGE_SIZE);
-    allProducts = (firstPage.result || []).map((prod) => ({ slug: prod.slug }));
-    totalPages = firstPage.totalPages || 1;
-
-    // Fetch remaining pages in parallel batches of 4
-    while (page < totalPages) {
-      const batch: number[] = [];
-      for (let i = 1; i <= 4 && page + i <= totalPages; i++) {
-        batch.push(page + i);
-      }
-
-      const results = await Promise.all(
-        batch.map((p) => api.getAllProducts(p, PAGE_SIZE))
-      );
-
-      for (const data of results) {
-        const slugs = (data.result || []).map((prod) => ({ slug: prod.slug }));
-        allProducts.push(...slugs);
-      }
-
-      page += batch.length;
-    }
-
-    const SSG_LIMIT = 10;
-    console.log(`[getStaticPaths] Generated ${allProducts.length} product paths (SSG: ${Math.min(SSG_LIMIT, allProducts.length)}, SSR: ${Math.max(0, allProducts.length - SSG_LIMIT)})`);
-
-    return allProducts.map(({ slug }, idx) => ({
-      params: { slug },
-      prerender: idx < SSG_LIMIT,
-    }));
-  } catch (error) {
-    console.error("Error generating static paths for products:", error);
-    // Return whatever we managed to fetch
-    return allProducts.map(({ slug }, idx) => ({
-      params: { slug },
-      prerender: idx < 10,
-    }));
-  }
-}
+import type { Product } from "../../lib/api";
 
 const { slug } = Astro.params;
-
-import type { Product } from "../../lib/api";
 
 // 2. Fetch specific product content
 let product: Product | null = null;
@@ -68,10 +19,26 @@ let brandProducts: Product[] = [];
 
 try {
   product = await api.getProductBySlug(slug);
-  relatedProducts = await api.getRandomProducts(4);
+
+  // Related products: prefer same category, then same concern, then random fallback.
+  if (product?.category_slug) {
+    try {
+      const cat = await api.getProductsByCategory(product.category_slug, 1, 8);
+      const filtered = (cat.result || []).filter((p) => p.id !== product!.id).slice(0, 6);
+      if (filtered.length > 0) {
+        relatedProducts = filtered;
+      }
+    } catch (e) {
+      console.warn("Category-based related lookup failed, falling back to random:", e);
+    }
+  }
+  if (relatedProducts.length === 0) {
+    relatedProducts = await api.getRandomProducts(6);
+  }
+
   if (product?.brand_slug) {
-    const brandData = await api.getProductsByBrand(product.brand_slug, 1, 8);
-    brandProducts = (brandData.result || []).filter(p => p.id !== product!.id).slice(0, 4);
+    const brandData = await api.getProductsByBrand(product.brand_slug, 1, 10);
+    brandProducts = (brandData.result || []).filter(p => p.id !== product!.id).slice(0, 6);
   }
 } catch (error) {
   console.error(`Error loading product slug "${slug}" from backend:`, error);
@@ -101,7 +68,20 @@ const sizes = safeParseArray(product.details?.sizes);
   title={`${product.name} | TOK Skincare Bangladesh`}
   description={`Shop authentic ${product.brand} - ${product.name} imported directly from Bangkok. ${product.details?.description?.slice(0, 120)}...`}
   image={mainImg}
+  type="product"
 >
+  <Fragment slot="head">
+    <ProductSchema product={product} rating={{ value: 4.5, count: 14 }} />
+    <BreadcrumbSchema
+      items={[
+        { label: "Home", href: "/" },
+        { label: product.brand, href: `/brands/${product.brand_slug}` },
+        { label: product.category, href: `/categories/${product.category_slug}` },
+        { label: product.name },
+      ]}
+    />
+  </Fragment>
+  <div class="max-w-[1536px] mx-auto px-4 md:px-6 pt-4 pb-16 md:pb-24">
   <div class="max-w-[1536px] mx-auto px-4 md:px-6 pt-4 pb-16 md:pb-24">
     {/* Breadcrumbs */}
     <Breadcrumb
@@ -118,7 +98,7 @@ const sizes = safeParseArray(product.details?.sizes);
 
       {/* ── Image Gallery Column ── */}
       <div class="flex flex-col gap-3 min-w-0">
-        <div class="relative w-full pt-[133.33%] bg-surface-card border border-hairline overflow-hidden">
+        <div class="relative w-full pt-[100%] sm:pt-[115%] md:pt-[133.33%] bg-surface-card border border-hairline overflow-hidden">
           <img src={mainImg} alt={product.name} class="absolute inset-0 w-full h-full object-cover" id="pdp-main-image" />
 
           {/* Badges */}
@@ -304,7 +284,7 @@ const sizes = safeParseArray(product.details?.sizes);
           <span class="font-sans text-[11px] font-bold tracking-[2.5px] uppercase text-primary leading-none">FROM THE SAME BRAND</span>
           <h2 class="font-serif text-[28px] md:text-[36px] font-bold text-ink m-0 mt-2">More from {product.brand}</h2>
         </div>
-        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-1 sm:gap-2">
+        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-3">
           {brandProducts.map(prod => <ProductCard product={prod} />)}
         </div>
       </section>
@@ -316,7 +296,7 @@ const sizes = safeParseArray(product.details?.sizes);
         <span class="font-sans text-[11px] font-bold tracking-[2.5px] uppercase text-primary leading-none">RITUAL PAIRINGS</span>
         <h2 class="font-serif text-[28px] md:text-[36px] font-bold text-ink m-0 mt-2">Recommended Products</h2>
       </div>
-      <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-1 sm:gap-2">
+      <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-3">
         {relatedProducts.map(prod => <ProductCard product={prod} />)}
       </div>
     </section>
@@ -350,7 +330,7 @@ const sizes = safeParseArray(product.details?.sizes);
 </style>
 
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
+  function initProductPage() {
     // 1. Gallery thumbnail selectors
     const mainImage = document.getElementById('pdp-main-image') as HTMLImageElement;
     const thumbs = document.querySelectorAll('[data-img-url]');
@@ -425,5 +405,11 @@ const sizes = safeParseArray(product.details?.sizes);
         }
       });
     });
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initProductPage);
+  } else {
+    initProductPage();
+  }
 </script>

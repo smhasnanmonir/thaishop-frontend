@@ -1,0 +1,12 @@
+---
+// Reusable JsonLd wrapper. Pass a typed object as the only prop.
+
+interface Props {
+  data: Record<string, unknown> | Record<string, unknown>[];
+}
+
+const { data } = Astro.props;
+const json = JSON.stringify(data).replace(/</g, "\\u003c");
+---
+
+<script type="application/ld+json" set:html={json} />

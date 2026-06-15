@@ -1,22 +1,32 @@
 ---
-// Top-level promotional marquee banner
+import { announcements } from "../../data/announcements";
+
+// Duplicate the items so the CSS -50% translate creates a seamless loop
+// without a hard cut at the end of the bar.
+const rendered = announcements.concat(announcements);
+const separator = " • ";
 ---
 
 <div class="bg-primary text-on-primary h-[30px] flex items-center overflow-hidden relative z-[100]">
   <div class="marquee-content flex whitespace-nowrap font-sans text-[11px] font-bold tracking-[2px] uppercase absolute will-change-transform">
-    <span>BANGKOK BEAUTY FAIR EXCLUSIVE &bull; SAVE 15% WITH CODE: SAWASDEE &bull; THAILAND'S BEST SKINCARE BRANDS NOW IN DHAKA &bull; CASH ON DELIVERY AVAILABLE &bull; </span>
-    <span>BANGKOK BEAUTY FAIR EXCLUSIVE &bull; SAVE 15% WITH CODE: SAWASDEE &bull; THAILAND'S BEST SKINCARE BRANDS NOW IN DHAKA &bull; CASH ON DELIVERY AVAILABLE &bull; </span>
+    {rendered.map((item) => (
+      <span>
+        {item.href ? <a href={item.href} class="text-on-primary no-underline hover:underline">{item.text}</a> : item.text}
+        <span aria-hidden="true">&nbsp;{separator}&nbsp;</span>
+      </span>
+    ))}
   </div>
 </div>
 
 <style>
   .marquee-content {
-    animation: marquee-scroll 20s linear infinite;
+    animation: marquee-scroll 30s linear infinite;
   }
 
-  .marquee-content span {
-    padding-right: 40px;
-    display: inline-block;
+  .marquee-content > span {
+    padding-right: 0;
+    display: inline-flex;
+    align-items: center;
   }
 
   @keyframes marquee-scroll {
@@ -33,10 +43,9 @@
       animation: none;
       position: static;
       width: 100%;
-      text-align: center;
-    }
-    .marquee-content span:last-child {
-      display: none;
+      justify-content: center;
+      white-space: normal;
+      flex-wrap: wrap;
     }
   }
 </style>

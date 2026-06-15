@@ -1,0 +1,33 @@
+---
+/**
+ * Minimal analytics beacon. Sends a single pageview hit to a configurable
+ * endpoint (default: no-op). Add a real collector URL via the
+ * PUBLIC_ANALYTICS_ENDPOINT env var when ready.
+ */
+const endpoint = (import.meta.env.PUBLIC_ANALYTICS_ENDPOINT as string | undefined) || "";
+---
+
+{endpoint && (
+  <script is:inline define:vars={{ endpoint }}>
+    (function () {
+      try {
+        var sid = "tok_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+        try { sessionStorage.setItem("tok_sid", sid); } catch (e) {}
+        var data = {
+          sid: sid,
+          path: location.pathname,
+          ref: document.referrer || null,
+          ua: navigator.userAgent,
+          ts: Date.now(),
+        };
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon(endpoint, JSON.stringify(data));
+        } else {
+          fetch(endpoint, { method: "POST", body: JSON.stringify(data), keepalive: true });
+        }
+      } catch (e) {
+        // Silent — analytics must never break the page.
+      }
+    })();
+  </script>
+)}

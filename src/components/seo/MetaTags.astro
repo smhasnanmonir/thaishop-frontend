@@ -1,0 +1,22 @@
+---
+import type { SEOMeta } from "../../types/seo";
+
+interface Props extends SEOMeta {
+  noindex?: boolean;
+}
+
+const {
+  title,
+  description,
+  canonicalUrl,
+  image,
+  type = "website",
+  noindex = false,
+} = Astro.props;
+---
+
+<title>{title}</title>
+<meta name="description" content={description} />
+{noindex && <meta name="robots" content="noindex, nofollow" />}
+{!noindex && <meta name="robots" content="index, follow" />}
+<link rel="canonical" href={canonicalUrl || Astro.url.href} />

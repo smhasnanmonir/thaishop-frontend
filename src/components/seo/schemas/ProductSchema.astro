@@ -1,0 +1,43 @@
+---
+import type { JsonLdProduct, Product } from "../../lib/api";
+import JsonLd from "../JsonLd.astro";
+
+interface Props {
+  product: Product;
+  rating?: { value: number; count: number };
+}
+
+const { product, rating } = Astro.props;
+const baseUrl = Astro.site?.toString().replace(/\/$/, "") ?? "https://tokbd.com";
+const url = `${baseUrl}/products/${product.slug}`;
+
+const images = [product.card_photo, product.img, ...(product.details?.photos || [])].filter(Boolean);
+
+const data: JsonLdProduct = {
+  "@context": "https://schema.org",
+  "@type": "Product",
+  name: product.name,
+  description: product.details?.description || `${product.brand} ${product.category} imported directly from Thailand.`,
+  image: images,
+  sku: String(product.id),
+  brand: { "@type": "Brand", name: product.brand },
+  offers: {
+    "@type": "Offer",
+    priceCurrency: "BDT",
+    price: parseFloat(product.price),
+    availability: product.stock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+    url,
+  },
+  ...(rating
+    ? {
+        aggregateRating: {
+          "@type": "AggregateRating",
+          ratingValue: rating.value,
+          reviewCount: rating.count,
+        },
+      }
+    : {}),
+};
+---
+
+<JsonLd data={data} />

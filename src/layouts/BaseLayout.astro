@@ -5,13 +5,16 @@ import Footer from "../components/navigation/Footer.astro";
 import CartDrawer from "../components/features/CartDrawer.astro";
 import SearchOverlay from "../components/features/SearchOverlay.astro";
 import SuccessModal from "../components/ui/SuccessModal.astro";
+import { MetaTags, OpenGraph, OrganizationSchema } from "../components/seo";
+import Beacon from "../components/analytics/Beacon.astro";
 import "../styles/global.css";
 
 interface Props {
   title?: string;
   description?: string;
   image?: string;
-  type?: string;
+  type?: "website" | "article" | "product";
+  noindex?: boolean;
 }
 
 const {
@@ -19,6 +22,7 @@ const {
   description = "Shop original Thailand skincare and beauty products in Bangladesh. Discover authentic Thai cleansers, serums, sunscreens, and moisturisers tailored for your skin.",
   image = "/og/default-og.jpg",
   type = "website",
+  noindex = false,
 } = Astro.props;
 
 const canonicalUrl = new URL(Astro.url.pathname, "https://tokbd.com").toString();
@@ -31,26 +35,10 @@ const canonicalUrl = new URL(Astro.url.pathname, "https://tokbd.com").toString()
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" href="/favicon.ico" />
-    
-    <!-- SEO Optimization for Bangladeshi Skincare Shoppers -->
-    <title>{title}</title>
-    <meta name="description" content={description} />
-    <link rel="canonical" href={canonicalUrl} />
-    <meta name="robots" content="index, follow" />
-    
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content={type} />
-    <meta property="og:url" content={Astro.url.href} />
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
-    <meta property="og:image" content={image} />
-    
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content={Astro.url.href} />
-    <meta property="twitter:title" content={title} />
-    <meta property="twitter:description" content={description} />
-    <meta property="twitter:image" content={image} />
+
+    <MetaTags title={title} description={description} canonicalUrl={canonicalUrl} noindex={noindex} />
+    <OpenGraph title={title} description={description} image={image} type={type} canonicalUrl={canonicalUrl} />
+    <OrganizationSchema />
 
     <!-- Google Fonts Preconnect and Load -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -64,124 +52,115 @@ const canonicalUrl = new URL(Astro.url.pathname, "https://tokbd.com").toString()
     <slot name="head" />
   </head>
   <body>
-    <!-- Top-level Promotional Marquee -->
     <MarqueeBanner />
-    
-    <!-- Navigation Chrome -->
     <PrimaryNav />
-
-    <!-- Search Overlay -->
     <SearchOverlay />
 
-    <!-- Main Content Area -->
     <main>
       <slot />
     </main>
 
-    <!-- Footer Area -->
     <Footer />
-
-    <!-- Interactive Shopping Cart Drawer Overlay -->
     <CartDrawer />
-
-    <!-- Success Modal -->
     <SuccessModal />
 
+    <Beacon />
+
     <!-- Global Offline Cart Controller -->
-    <script is:inline>
-      (function() {
-        var STORAGE_KEY = 'tok_cart';
+    <script>
+      import { getCount, addItem, notifyChange } from "../lib/cart";
 
-        function readItems() {
-          try {
-            var raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return [];
-            var parsed = JSON.parse(raw);
-            return Array.isArray(parsed) ? parsed : [];
-          } catch(e) { return []; }
+      function initGlobalCart() {
+        function readCount(): number {
+          return getCount();
         }
 
-        function writeItems(items) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+        function emitUpdate() {
+          notifyChange();
         }
 
-        function emit() {
-          var items = readItems();
-          var totalItems = items.reduce(function(s, i) { return s + i.quantity; }, 0);
-          var badge = document.getElementById('nav-cart-count');
-          var mobileBadge = document.getElementById('mobile-nav-cart-count');
-          if (badge) badge.innerText = totalItems.toString();
-          if (mobileBadge) mobileBadge.innerText = totalItems.toString();
-          window.dispatchEvent(new CustomEvent('cart-updated', { detail: items }));
+        function openDrawer() {
+          window.dispatchEvent(new CustomEvent("toggle-cart-drawer", { detail: { open: true } }));
         }
 
-        // Initialize badge on load (deferred so CartDrawer listener is registered first)
-        var initialItems = readItems();
-        var initialCount = initialItems.reduce(function(s, i) { return s + i.quantity; }, 0);
-        window.updateCartBadgeCount = function(count) {
-          var badge = document.getElementById('nav-cart-count');
-          var mobileBadge = document.getElementById('mobile-nav-cart-count');
-          if (badge) badge.innerText = count.toString();
-          if (mobileBadge) mobileBadge.innerText = count.toString();
+        function showSuccess(name: string, price: number, image: string) {
+          window.dispatchEvent(
+            new CustomEvent("add-to-cart-success", {
+              detail: {
+                name,
+                price:
+                  price > 0
+                    ? "৳" +
+                      price.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+                    : "৳0",
+                image,
+              },
+            })
+          );
+        }
+
+        // Public helper used by the BuyNowButton
+        (window as any).updateCartBadgeCount = (count: number) => {
+          const badge = document.getElementById("nav-cart-count");
+          const mobileBadge = document.getElementById("mobile-nav-cart-count");
+          if (badge) badge.innerText = String(count);
+          if (mobileBadge) mobileBadge.innerText = String(count);
         };
-        // Defer initial cart-updated so drawer's DOMContentLoaded listener registers first
-        document.addEventListener('DOMContentLoaded', function() {
-          window.updateCartBadgeCount(initialCount);
-          window.dispatchEvent(new CustomEvent('cart-updated', { detail: initialItems }));
+
+        // Listen for "add-to-cart-action" from any caller
+        window.addEventListener("add-to-cart-action", (e: Event) => {
+          const detail = (e as CustomEvent).detail || {};
+          const productId = parseInt(detail.productId);
+          const quantity = parseInt(detail.quantity) || 1;
+          if (Number.isNaN(productId)) return;
+
+          addItem({
+            productId,
+            name: detail.name || "",
+            price: parseFloat(detail.price) || 0,
+            image: detail.image || "",
+            slug: detail.slug || "",
+            quantity,
+          });
+          emitUpdate();
+          openDrawer();
+          showSuccess(detail.name || "", parseFloat(detail.price) || 0, detail.image || "");
         });
 
-        // Listen for add-to-cart-action events (from ProductCard, PDP, etc)
-        window.addEventListener('add-to-cart-action', function(e) {
-          var detail = e.detail || {};
-          var productId = parseInt(detail.productId);
-          var quantity = parseInt(detail.quantity) || 1;
-          var name = detail.name || '';
-          var price = parseFloat(detail.price) || 0;
-          var image = detail.image || '';
-          var slug = detail.slug || '';
-          var items = readItems();
-          var existing = items.find(function(i) { return i.productId === productId; });
-
-          if (existing) {
-            existing.quantity += quantity;
-          } else {
-            items.push({ productId: productId, name: name, price: price, image: image, slug: slug, quantity: quantity });
-          }
-
-          writeItems(items);
-          emit();
-
-          // Open cart drawer briefly to show the product was added
-          window.dispatchEvent(new CustomEvent('toggle-cart-drawer', { detail: { open: true } }));
-
-          // Show success modal
-          window.dispatchEvent(new CustomEvent('add-to-cart-success', {
-            detail: { name: name, price: price ? '৳' + price.toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0}) : '৳0', image: image }
-          }));
-        });
-
-        // Delegate click for [data-add-to-cart] buttons
-        document.addEventListener('click', function(e) {
-          var btn = e.target.closest('[data-add-to-cart]');
+        // Delegate click for any [data-add-to-cart] button
+        document.addEventListener("click", (e: Event) => {
+          const btn = (e.target as HTMLElement).closest<HTMLElement>("[data-add-to-cart]");
           if (!btn) return;
           e.preventDefault();
-          var productId = btn.getAttribute('data-id');
+          const productId = btn.getAttribute("data-id");
           if (!productId) return;
-          window.dispatchEvent(new CustomEvent('add-to-cart-action', {
-            detail: {
-              productId: productId,
-              name: btn.getAttribute('data-name') || '',
-              price: btn.getAttribute('data-price') || '0',
-              image: btn.getAttribute('data-img') || '',
-              slug: btn.getAttribute('data-slug') || '',
-              quantity: 1
-            }
-          }));
-          
-          // Also open cart drawer so user sees the update
-          window.dispatchEvent(new CustomEvent('toggle-cart-drawer', { detail: { open: true } }));
+          window.dispatchEvent(
+            new CustomEvent("add-to-cart-action", {
+              detail: {
+                productId,
+                name: btn.getAttribute("data-name") || "",
+                price: btn.getAttribute("data-price") || "0",
+                image: btn.getAttribute("data-img") || "",
+                slug: btn.getAttribute("data-slug") || "",
+                quantity: 1,
+              },
+            })
+          );
+          openDrawer();
         });
-      })();
+
+        // Initial state on load
+        document.addEventListener("DOMContentLoaded", () => {
+          (window as any).updateCartBadgeCount(readCount());
+          emitUpdate();
+        });
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initGlobalCart);
+      } else {
+        initGlobalCart();
+      }
     </script>
   </body>
 </html>

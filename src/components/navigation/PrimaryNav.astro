@@ -92,7 +92,7 @@
 </style>
 
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
+  function initPrimaryNav() {
     const header = document.getElementById('main-header');
     const menuToggleBtn = document.getElementById('menu-toggle-btn');
     const menuCloseBtn = document.getElementById('menu-close-btn');
@@ -137,5 +137,11 @@
       e.stopPropagation();
       window.dispatchEvent(new CustomEvent('toggle-cart-drawer'));
     });
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPrimaryNav);
+  } else {
+    initPrimaryNav();
+  }
 </script>

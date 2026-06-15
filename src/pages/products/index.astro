@@ -1,7 +1,7 @@
 ---
+export const prerender = true;
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import ProductCard from "../../components/ui/ProductCard.astro";
-import Pagination from "../../components/ui/Pagination.astro";
 import { api } from "../../lib/api";
 
 import type { Category, Brand, SkinConcern, SkinType, Product } from "../../lib/api";
@@ -156,21 +156,17 @@ try {
           ))}
         </div>
 
-        {/* Pagination */}
-        <div id="plp-pagination-wrapper" class="flex items-center justify-center border-t border-hairline pt-6 mt-4">
-          <Pagination
-            id="plp-pagination"
-            currentPage={1}
-            totalPages={initialTotalPages}
-          />
-        </div>
+        {/* Pagination — populated by the client script below. The wrapper is rendered
+            empty so the JS can build button-style pagination that intercepts clicks
+            and uses fetchFilteredProducts() instead of a full page reload. */}
+        <div id="plp-pagination-wrapper" class="flex items-center justify-center border-t border-hairline pt-6 mt-4"></div>
       </div>
     </div>
   </div>
 </BaseLayout>
 
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
+  function initProductListing() {
     const filterPanel = document.getElementById('sidebar-filter-panel');
     const mobileToggle = document.getElementById('mobile-filter-toggle');
     const mobileClose = document.getElementById('close-filters-btn');
@@ -193,6 +189,33 @@ try {
     function formatBDT(val: number) {
       return '৳' + val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     }
+
+    // Mirror the current page in the URL bar so /products?page=3 is shareable
+    // and browser back/forward moves between pages. Only pushes if the URL
+    // would actually change.
+    function syncUrl(page: number) {
+      if (typeof window === "undefined") return;
+      const url = new URL(window.location.href);
+      if (page <= 1) {
+        if (url.searchParams.has("page")) {
+          url.searchParams.delete("page");
+          window.history.pushState({}, "", url);
+        }
+      } else {
+        if (url.searchParams.get("page") !== String(page)) {
+          url.searchParams.set("page", String(page));
+          window.history.pushState({}, "", url);
+        }
+      }
+    }
+
+    // React to browser back/forward — re-fetch the page indicated by the URL.
+    window.addEventListener("popstate", () => {
+      const url = new URL(window.location.href);
+      const p = Math.max(1, parseInt(url.searchParams.get("page") || "1"));
+      currentPage = p;
+      fetchFilteredProducts(p);
+    });
 
     function renderPagination(cur: number, total: number) {
       if (!paginationWrapper) return;
@@ -249,17 +272,14 @@ try {
           if (action === 'prev' && currentPage > 1) {
             currentPage--;
             fetchFilteredProducts(currentPage);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
           } else if (action === 'next' && currentPage < totalPages) {
             currentPage++;
             fetchFilteredProducts(currentPage);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
           } else if (action === 'page') {
             const pg = parseInt(target.getAttribute('data-page') || '1');
             if (pg !== currentPage) {
               currentPage = pg;
               fetchFilteredProducts(currentPage);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
             }
           }
         });
@@ -298,8 +318,15 @@ try {
       }
     });
 
-    if (hasUrlFilters) fetchFilteredProducts(1);
-    else renderPagination(1, {initialTotalPages});
+    // Read the initial page from the URL so deep links like /products?page=3 work.
+    const initialPage = Math.max(1, parseInt(urlParams.get("page") || "1"));
+    currentPage = initialPage;
+
+    if (hasUrlFilters || initialPage > 1) {
+      fetchFilteredProducts(initialPage);
+    } else {
+      renderPagination(1, {initialTotalPages});
+    }
 
     checkboxes.forEach((cb) => {
       cb.addEventListener('change', () => {
@@ -353,6 +380,10 @@ try {
 
           renderPagination(currentPage, totalPages);
 
+          // Reflect the current page in the URL so deep links and back/forward
+          // navigation work, without triggering a full page reload.
+          syncUrl(currentPage);
+
           if (items.length === 0) {
             if (plpEmpty) plpEmpty.style.display = 'block';
             if (totalLabel) totalLabel.innerText = 'Showing 0 products';
@@ -378,7 +409,7 @@ try {
                   <div class="relative w-full aspect-square sm:aspect-[3/4] bg-surface-card overflow-hidden">
                     <img src="${imgUrl}" alt="${prod.name}" class="absolute inset-0 w-full h-full object-cover" loading="lazy" />
                     <div class="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
-                      ${onSale ? `<span class="inline-flex items-center font-sans text-[12px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none rounded-none bg-ink text-on-dark">SALE -${discountPercent}%</span>` : ''}
+                      ${onSale ? `<span class="inline-flex items-center font-sans text-[10px] sm:text-[12px] font-bold tracking-[1.5px] uppercase px-2 py-1 sm:px-3 sm:py-1.5 leading-none rounded-none bg-ink text-on-dark">-${discountPercent}%</span>` : ''}
                       ${!prod.stock ? `<span class="inline-flex items-center font-sans text-[11px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none rounded-none bg-mute text-on-primary">SOLD OUT</span>` : ''}
                       ${prod.origin_country === 'thailand' ? `<span class="inline-flex items-center font-sans text-[11px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none rounded-none bg-accent-gold text-on-dark">THAI</span>` : ''}
                     </div>
@@ -387,7 +418,7 @@ try {
                 <div class="flex flex-col flex-1 p-3.5 sm:p-5 gap-3">
                   <span class="font-sans text-[12px] md:text-[13px] font-bold tracking-[2px] uppercase text-mute">${prod.brand}</span>
                   <a href="/products/${prod.slug}" class="no-underline text-ink block flex-1">
-                    <h3 class="font-sans text-[15px] md:text-[16px] font-semibold leading-[1.4] line-clamp-2 text-ink m-0">${prod.name}</h3>
+                    <h3 class="font-sans text-[13px] md:text-[15px] font-semibold leading-[1.4] line-clamp-2 text-ink m-0">${prod.name}</h3>
                   </a>
                   <div class="flex items-baseline gap-2 mt-1">
                     <span class="font-sans text-[20px] md:text-[22px] font-bold text-ink leading-none">${formatBDT(currentPrice)}</span>
@@ -395,7 +426,7 @@ try {
                   </div>
                   <div class="mt-auto pt-4">
                     ${prod.stock ? `
-                      <button class="flex items-center justify-center gap-1.5 sm:gap-2 w-full h-12 px-2 sm:px-6 bg-primary text-on-primary font-sans text-[11px] sm:text-[13px] font-bold tracking-[0.5px] sm:tracking-[1.2px] uppercase rounded-none cursor-pointer hover:bg-primary-pressed active:bg-primary-pressed transition-colors duration-150 whitespace-nowrap" data-add-to-cart data-id="${prod.id}" data-name="${prod.name}" data-price="${prod.price}" data-img="${imgUrl}" data-slug="${prod.slug}">
+                      <button class="flex items-center justify-center gap-1.5 sm:gap-2 w-full h-14 sm:h-12 px-2 sm:px-6 bg-primary text-on-primary font-sans text-[11px] sm:text-[13px] font-bold tracking-[0.5px] sm:tracking-[1.2px] uppercase rounded-none cursor-pointer hover:bg-primary-pressed active:bg-primary-pressed transition-colors duration-150 whitespace-nowrap" data-add-to-cart data-id="${prod.id}" data-name="${prod.name}" data-price="${prod.price}" data-img="${imgUrl}" data-slug="${prod.slug}">
                         <svg class="hidden sm:block" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                           <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path>
                           <line x1="3" y1="6" x2="21" y2="6"></line>
@@ -404,7 +435,7 @@ try {
                         <span>Add to Bag</span>
                       </button>
                     ` : `
-                      <span class="flex items-center justify-center w-full h-12 px-2 border border-hairline-soft font-sans text-[11px] sm:text-[13px] font-semibold text-mute uppercase rounded-none bg-surface-soft whitespace-nowrap">Out of Stock</span>
+                      <span class="flex items-center justify-center w-full h-14 sm:h-12 px-2 border border-hairline-soft font-sans text-[11px] sm:text-[13px] font-semibold text-mute uppercase rounded-none bg-surface-soft whitespace-nowrap">Out of Stock</span>
                     `}
                   </div>
                 </div>
@@ -415,11 +446,14 @@ try {
             productsGrid.style.display = 'grid';
           }
 
-          const endCount = Math.min(currentPage * 12, total);
-          const startCount = (currentPage - 1) * 12 + 1;
-          
+          const PAGE_SIZE = 20;
+          const endCount = Math.min(currentPage * PAGE_SIZE, total);
+          const startCount = (currentPage - 1) * PAGE_SIZE + 1;
+
           if (totalLabel) totalLabel.innerText = `Showing ${startCount}-${endCount} of ${total} products`;
           if (mobileTotalLabel) mobileTotalLabel.innerText = `${total} products`;
+
+          window.scrollTo({ top: 0, behavior: "smooth" });
         }
       } catch (err) {
         console.error('Error fetching filtered list:', err);
@@ -427,5 +461,11 @@ try {
         if (plpEmpty) plpEmpty.style.display = 'block';
       }
     }
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initProductListing);
+  } else {
+    initProductListing();
+  }
 </script>

@@ -1,56 +1,9 @@
 ---
+export const prerender = true;
 import CheckoutLayout from "../../layouts/CheckoutLayout.astro";
 ---
 
 <CheckoutLayout title="Secure Checkout | TOK Skincare">
-  <!-- Success Confirmation Screen (hidden initially) -->
-  <div id="checkout-success-screen" class="hidden max-w-[600px] mx-auto text-center py-12 flex flex-col items-center gap-6 bg-canvas border border-hairline p-8">
-    <div class="w-16 h-16 bg-success-pale text-success-deep rounded-full flex items-center justify-center">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <polyline points="20 6 9 17 4 12"></polyline>
-      </svg>
-    </div>
-    
-    <div class="flex flex-col gap-2">
-      <span class="font-sans text-overline font-bold tracking-overline text-primary">THANK YOU FOR YOUR ORDER</span>
-      <h1 class="font-serif text-display-md font-bold text-ink">Order Confirmed!</h1>
-      <p class="font-sans text-body-md text-mute max-w-[420px]">
-        Your Thai skincare products order has been received successfully. We are preparing your packages.
-      </p>
-    </div>
-
-    <div class="w-full bg-surface-soft border border-hairline p-5 text-left flex flex-col gap-2">
-      <div class="flex justify-between font-sans text-body-sm">
-        <span class="text-mute">Order ID:</span>
-        <span class="font-bold text-ink" id="success-order-id">#</span>
-      </div>
-      <div class="flex justify-between font-sans text-body-sm">
-        <span class="text-mute">Recipient:</span>
-        <span class="font-semibold text-ink" id="success-name">Name</span>
-      </div>
-      <div class="flex justify-between font-sans text-body-sm">
-        <span class="text-mute">Phone Number:</span>
-        <span class="font-semibold text-ink" id="success-phone">Phone</span>
-      </div>
-      <div class="flex justify-between font-sans text-body-sm">
-        <span class="text-mute">Delivery Destination:</span>
-        <span class="font-semibold text-ink" id="success-address">Address</span>
-      </div>
-      <div class="border-t border-hairline-soft pt-2 mt-2 flex justify-between font-sans text-[16px] font-bold">
-        <span>Total Paid (COD):</span>
-        <span class="font-serif text-[22px] font-bold text-primary" id="success-total">৳0</span>
-      </div>
-    </div>
-
-    <p class="font-sans text-body-sm text-mute leading-relaxed">
-      A customer representative will contact you shortly to verify delivery instructions. Cash on delivery (COD) is supported.
-    </p>
-
-    <a href="/products" class="inline-flex items-center justify-center bg-ink text-on-dark font-sans text-[12px] font-bold tracking-[1px] uppercase h-12 px-8 mt-2 transition-colors duration-150 hover:bg-primary">
-      Continue Shopping
-    </a>
-  </div>
-
   <!-- Main Checkout Screen -->
   <div id="checkout-main-screen" class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
     
@@ -182,9 +135,7 @@ import CheckoutLayout from "../../layouts/CheckoutLayout.astro";
 </CheckoutLayout>
 
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const mainScreen = document.getElementById('checkout-main-screen');
-    const successScreen = document.getElementById('checkout-success-screen');
+  function initCheckout() {
     const checkoutForm = document.getElementById('checkout-form') as HTMLFormElement;
     const submitBtn = document.getElementById('place-order-submit-btn') as HTMLButtonElement;
 
@@ -192,12 +143,6 @@ import CheckoutLayout from "../../layouts/CheckoutLayout.astro";
     const subtotalText = document.getElementById('checkout-subtotal');
     const shippingText = document.getElementById('checkout-shipping');
     const totalText = document.getElementById('checkout-total');
-
-    const successOrderId = document.getElementById('success-order-id');
-    const successName = document.getElementById('success-name');
-    const successPhone = document.getElementById('success-phone');
-    const successAddress = document.getElementById('success-address');
-    const successTotal = document.getElementById('success-total');
 
     let subtotal = 0;
     let shipping = 80; // Default inside Dhaka
@@ -339,18 +284,33 @@ import CheckoutLayout from "../../layouts/CheckoutLayout.astro";
             body: JSON.stringify({ guestId: window.tokGuestId })
           }).catch(console.error);
 
-          // Populate success screen details
-          if (successOrderId) successOrderId.innerText = `#${orderId}`;
-          if (successName) successName.innerText = name;
-          if (successPhone) successPhone.innerText = phone;
-          if (successAddress) successAddress.innerText = `${address}, ${city}, Bangladesh`;
-          if (successTotal) successTotal.innerText = formatBDT(subtotal + shipping);
+          // Persist full order details for the confirmation page
+          const orderSummary = {
+            orderId,
+            createdAt: new Date().toISOString(),
+            paymentMethod: 'Cash on Delivery',
+            user: {
+              name,
+              email,
+              phone,
+              address,
+              city,
+              notes: note,
+              deliveryLocation,
+            },
+            items: currentItems,
+            subtotal,
+            shipping,
+            total: subtotal + shipping,
+          };
+          try {
+            localStorage.setItem('tok_last_order', JSON.stringify(orderSummary));
+          } catch (e) {
+            console.error('Failed to persist order summary:', e);
+          }
 
-          // Render Success Screen
-          if (mainScreen) mainScreen.style.display = 'none';
-          if (successScreen) successScreen.classList.remove('hidden');
-
-          window.scrollTo({ top: 0 });
+          // Redirect to dedicated order confirmation page
+          window.location.href = '/checkout/confirmation';
         } else {
           const errData = await res.json();
           alert(`Order Placement Error: ${errData.error || 'Failed to complete order. Please check inputs.'}`);
@@ -368,5 +328,11 @@ import CheckoutLayout from "../../layouts/CheckoutLayout.astro";
         }
       }
     });
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCheckout);
+  } else {
+    initCheckout();
+  }
 </script>

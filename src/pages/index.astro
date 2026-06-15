@@ -1,4 +1,5 @@
 ---
+export const prerender = true;
 import BaseLayout from "../layouts/BaseLayout.astro";
 import HeroCarousel from "../components/features/HeroCarousel.astro";
 import CategoryCard from "../components/ui/CategoryCard.astro";
@@ -70,15 +71,15 @@ try {
   </div>
 
   {/* Section 1: Categories */}
-  <section class="bg-canvas px-4 md:px-6" style="padding-top: 80px; padding-bottom: 80px;">
+  <section class="bg-canvas px-4 md:px-6 py-4 md:py-14">
     <div class="mx-auto" style="max-width: 1536px;">
-      <div class="flex flex-col items-center text-center gap-2.5 mb-12 md:mb-16 max-w-2xl mx-auto">
+      <div class="flex flex-col items-center text-center gap-2.5 mb-4 md:mb-8 max-w-2xl mx-auto">
         <span class="font-sans text-[12px] font-bold tracking-[2.5px] uppercase text-primary leading-none">BROWSE BY TYPE</span>
         <h2 class="font-serif text-[34px] md:text-[44px] lg:text-[48px] font-bold text-ink leading-tight m-0">Categories</h2>
       </div>
 
       {categories.length > 0 ? (
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-5">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 md:gap-4">
           {categories.slice(0, 8).map(cat => (
             <CategoryCard category={cat} />
           ))}
@@ -87,7 +88,7 @@ try {
         <p class="font-sans text-base text-mute py-8 text-center">Loading categories...</p>
       )}
 
-      <div class="mt-10 text-center">
+      <div class="mt-4 md:mt-6 text-center">
         <a href="/categories" class="font-sans text-xs font-bold tracking-[2px] uppercase text-ink no-underline hover:text-primary transition-colors">
           View All Categories →
         </a>
@@ -104,7 +105,7 @@ try {
       </div>
 
       {brands.length > 0 ? (
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-5">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 md:gap-4">
           {brands.sort(() => Math.random() - 0.5).slice(0, 8).map(br => (
             <BrandCard brand={br} />
           ))}
@@ -240,7 +241,7 @@ try {
       </div>
 
       {concerns.length > 0 ? (
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
           {concerns.slice(0, 4).map(con => (
             <SkinConcernCard concern={con} />
           ))}
@@ -266,7 +267,7 @@ try {
       </div>
 
       {types.length > 0 ? (
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
           {types.slice(0, 4).map(tp => (
             <SkinTypeCard type={tp} />
           ))}

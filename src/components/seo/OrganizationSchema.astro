@@ -1,0 +1,20 @@
+---
+import type { JsonLdOrg } from "../../types/seo";
+import JsonLd from "./JsonLd.astro";
+
+const baseUrl = Astro.site?.toString().replace(/\/$/, "") ?? "https://tokbd.com";
+
+const data: JsonLdOrg = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "TOK Skincare",
+  url: baseUrl,
+  logo: `${baseUrl}/og/default-og.jpg`,
+  sameAs: [
+    "https://www.facebook.com/tokskincare",
+    "https://www.instagram.com/tokskincare",
+  ],
+};
+---
+
+<JsonLd data={data} />

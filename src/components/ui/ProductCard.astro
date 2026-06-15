@@ -39,8 +39,8 @@ const imageUrl =
       {/* Badges */}
       <div class="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
         {onSale && (
-          <span class="inline-flex items-center font-sans text-[12px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none rounded-none bg-ink text-on-dark">
-            SALE -{discountPercent}%
+          <span class="inline-flex items-center font-sans text-[10px] sm:text-[12px] font-bold tracking-[1.5px] uppercase px-2 py-1 sm:px-3 sm:py-1.5 leading-none rounded-none bg-ink text-on-dark">
+            -{discountPercent}%
           </span>
         )}
         {!product.stock && (
@@ -65,8 +65,8 @@ const imageUrl =
     </span>
 
     {/* Product Name */}
-    <a href={`/products/${product.slug}`} class="no-underline text-ink block flex-1">
-      <h3 class="font-sans text-[15px] md:text-[16px] font-semibold leading-[1.4] line-clamp-2 text-ink m-0">
+      <a href={`/products/${product.slug}`} class="no-underline text-ink block flex-1">
+      <h3 class="font-sans text-[13px] md:text-[15px] font-semibold leading-[1.4] line-clamp-2 text-ink m-0">
         {product.name}
       </h3>
     </a>
@@ -87,7 +87,7 @@ const imageUrl =
     <div class="mt-auto pt-4">
       {product.stock ? (
         <button
-          class="flex items-center justify-center gap-1.5 sm:gap-2 w-full h-12 px-2 sm:px-6 bg-primary text-on-primary font-sans text-[11px] sm:text-[13px] font-bold tracking-[0.5px] sm:tracking-[1.2px] uppercase rounded-none cursor-pointer hover:bg-primary-pressed active:bg-primary-pressed transition-colors duration-150 whitespace-nowrap"
+          class="flex items-center justify-center gap-1.5 sm:gap-2 w-full h-14 sm:h-12 px-2 sm:px-6 bg-primary text-on-primary font-sans text-[11px] sm:text-[13px] font-bold tracking-[0.5px] sm:tracking-[1.2px] uppercase rounded-none cursor-pointer hover:bg-primary-pressed active:bg-primary-pressed transition-colors duration-150 whitespace-nowrap"
           data-add-to-cart
           data-id={product.id}
           data-name={product.name}
@@ -104,7 +104,7 @@ const imageUrl =
           <span>Add to Bag</span>
         </button>
       ) : (
-        <span class="flex items-center justify-center w-full h-12 px-2 border border-hairline-soft font-sans text-[11px] sm:text-[13px] font-semibold text-mute uppercase rounded-none bg-surface-soft whitespace-nowrap">
+        <span class="flex items-center justify-center w-full h-14 sm:h-12 px-2 border border-hairline-soft font-sans text-[11px] sm:text-[13px] font-semibold text-mute uppercase rounded-none bg-surface-soft whitespace-nowrap">
           Out of Stock
         </span>
       )}
