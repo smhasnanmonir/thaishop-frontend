@@ -51,7 +51,7 @@
   </div>
 
   <!-- Mobile Navigation Drawer -->
-  <div class="fixed top-0 left-0 w-[280px] h-full bg-canvas z-[1000] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] shadow-[10px_0_30px_rgba(0,0,0,0.05)] flex flex-col -translate-x-full" id="mobile-menu-drawer">
+  <div class="fixed top-0 left-0 w-[280px] h-full bg-canvas z-[1000] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] shadow-[10px_0_30px_rgba(0,0,0,0.05)] flex flex-col" id="mobile-menu-drawer">
     <div class="h-[68px] px-6 flex items-center justify-between border-b border-hairline-soft">
       <a href="/" class="flex flex-col justify-center leading-none text-decoration-none">
         <span class="font-serif text-[24px] font-bold tracking-[2px] text-primary">TOK</span>
@@ -78,12 +78,19 @@
   </div>
 
   <!-- Scrim overlay -->
-  <div class="fixed top-0 left-0 w-screen h-screen bg-ink/30 z-[998] opacity-0 invisible transition-all duration-200" id="nav-scrim-layer"></div>
+  <div class="fixed top-0 left-0 w-screen h-screen bg-ink/30 z-[998] transition-opacity duration-200" id="nav-scrim-layer"></div>
 </header>
 
-<style>
+<style is:inline>
+  #mobile-menu-drawer {
+    transform: translateX(-100%);
+  }
   #mobile-menu-drawer.open {
     transform: translateX(0);
+  }
+  #nav-scrim-layer {
+    opacity: 0;
+    visibility: hidden;
   }
   #nav-scrim-layer.open {
     opacity: 1;
