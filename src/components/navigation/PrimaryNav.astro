@@ -91,57 +91,75 @@
   }
 </style>
 
-<script>
-  function initPrimaryNav() {
-    const header = document.getElementById('main-header');
-    const menuToggleBtn = document.getElementById('menu-toggle-btn');
-    const menuCloseBtn = document.getElementById('menu-close-btn');
-    const mobileDrawer = document.getElementById('mobile-menu-drawer');
-    const cartToggleBtn = document.getElementById('cart-toggle-btn');
-    const scrimLayer = document.getElementById('nav-scrim-layer');
+<script is:inline>
+  (function () {
+    function initPrimaryNav() {
+      var header = document.getElementById('main-header');
+      var menuToggleBtn = document.getElementById('menu-toggle-btn');
+      var menuCloseBtn = document.getElementById('menu-close-btn');
+      var mobileDrawer = document.getElementById('mobile-menu-drawer');
+      var cartToggleBtn = document.getElementById('cart-toggle-btn');
+      var scrimLayer = document.getElementById('nav-scrim-layer');
 
-    // Sticky header compression on scroll
-    window.addEventListener('scroll', () => {
-      if (window.scrollY > 40) {
-        header?.classList.remove('h-[68px]');
-        header?.classList.add('h-[56px]', 'shadow-[0_4px_12px_rgba(26,14,20,0.05)]');
-      } else {
-        header?.classList.add('h-[68px]');
-        header?.classList.remove('h-[56px]', 'shadow-[0_4px_12px_rgba(26,14,20,0.05)]');
+      if (!menuToggleBtn || !mobileDrawer) {
+        return;
       }
-    });
 
-    // Toggle Mobile Drawer
-    function toggleMobileMenu() {
-      const isOpen = mobileDrawer?.classList.contains('open');
-      if (isOpen) {
-        mobileDrawer?.classList.remove('open');
-        scrimLayer?.classList.remove('open');
-      } else {
-        mobileDrawer?.classList.add('open');
-        scrimLayer?.classList.add('open');
+      // Sticky header compression on scroll
+      window.addEventListener('scroll', function () {
+        if (window.scrollY > 40) {
+          if (header) {
+            header.classList.remove('h-[68px]');
+            header.classList.add('h-[56px]', 'shadow-[0_4px_12px_rgba(26,14,20,0.05)]');
+          }
+        } else {
+          if (header) {
+            header.classList.add('h-[68px]');
+            header.classList.remove('h-[56px]', 'shadow-[0_4px_12px_rgba(26,14,20,0.05)]');
+          }
+        }
+      });
+
+      function toggleMobileMenu() {
+        var isOpen = mobileDrawer.classList.contains('open');
+        if (isOpen) {
+          mobileDrawer.classList.remove('open');
+          if (scrimLayer) scrimLayer.classList.remove('open');
+        } else {
+          mobileDrawer.classList.add('open');
+          if (scrimLayer) scrimLayer.classList.add('open');
+        }
+      }
+
+      menuToggleBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleMobileMenu();
+      });
+      if (menuCloseBtn) {
+        menuCloseBtn.addEventListener('click', function (e) {
+          e.preventDefault();
+          toggleMobileMenu();
+        });
+      }
+      if (scrimLayer) {
+        scrimLayer.addEventListener('click', function () {
+          mobileDrawer.classList.remove('open');
+          scrimLayer.classList.remove('open');
+        });
+      }
+      if (cartToggleBtn) {
+        cartToggleBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          window.dispatchEvent(new CustomEvent('toggle-cart-drawer'));
+        });
       }
     }
 
-    menuToggleBtn?.addEventListener('click', toggleMobileMenu);
-    menuCloseBtn?.addEventListener('click', toggleMobileMenu);
-
-    // Scrim click closes mobile menu
-    scrimLayer?.addEventListener('click', () => {
-      mobileDrawer?.classList.remove('open');
-      scrimLayer?.classList.remove('open');
-    });
-
-    // Cart toggle
-    cartToggleBtn?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      window.dispatchEvent(new CustomEvent('toggle-cart-drawer'));
-    });
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initPrimaryNav);
-  } else {
-    initPrimaryNav();
-  }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initPrimaryNav);
+    } else {
+      initPrimaryNav();
+    }
+  })();
 </script>

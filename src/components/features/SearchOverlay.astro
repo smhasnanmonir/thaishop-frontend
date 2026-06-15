@@ -131,44 +131,51 @@ try {
   </div>
 </div>
 
-<script>
-  function initSearchOverlay() {
-    const searchToggleBtn = document.getElementById("search-toggle-btn");
-    const searchCloseBtn = document.getElementById("search-close-btn");
-    const searchCloseBtnMobile = document.getElementById("search-close-btn-mobile");
-    const searchCloseBottomBtn = document.getElementById("search-close-bottom-btn");
-    const searchOverlay = document.getElementById("search-overlay-panel");
-    const searchInputField = document.getElementById("search-input-field");
+<script is:inline>
+  (function () {
+    function initSearchOverlay() {
+      var searchToggleBtn = document.getElementById("search-toggle-btn");
+      var searchCloseBtn = document.getElementById("search-close-btn");
+      var searchCloseBtnMobile = document.getElementById("search-close-btn-mobile");
+      var searchCloseBottomBtn = document.getElementById("search-close-bottom-btn");
+      var searchOverlay = document.getElementById("search-overlay-panel");
+      var searchInputField = document.getElementById("search-input-field");
 
-    function openSearch() {
-      searchOverlay?.setAttribute("data-open", "");
-      searchOverlay?.setAttribute("data-state", "open");
-      document.body.classList.add("search-open");
-      setTimeout(() => searchInputField?.focus(), 100);
-    }
+      if (!searchToggleBtn || !searchOverlay) return;
 
-    function closeSearch() {
-      searchOverlay?.removeAttribute("data-open");
-      searchOverlay?.setAttribute("data-state", "closed");
-      document.body.classList.remove("search-open");
-    }
-
-    searchToggleBtn?.addEventListener("click", openSearch);
-    searchCloseBtn?.addEventListener("click", closeSearch);
-    searchCloseBtnMobile?.addEventListener("click", closeSearch);
-    searchCloseBottomBtn?.addEventListener("click", closeSearch);
-
-    // ESC key closes search
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && searchOverlay?.dataset.state === "open") {
-        closeSearch();
+      function openSearch() {
+        searchOverlay.setAttribute("data-open", "");
+        searchOverlay.setAttribute("data-state", "open");
+        document.body.classList.add("search-open");
+        setTimeout(function () { if (searchInputField) searchInputField.focus(); }, 100);
       }
-    });
-  }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener("DOMContentLoaded", initSearchOverlay);
-  } else {
-    initSearchOverlay();
-  }
+      function closeSearch() {
+        searchOverlay.removeAttribute("data-open");
+        searchOverlay.setAttribute("data-state", "closed");
+        document.body.classList.remove("search-open");
+      }
+
+      searchToggleBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        openSearch();
+      });
+      if (searchCloseBtn) searchCloseBtn.addEventListener("click", closeSearch);
+      if (searchCloseBtnMobile) searchCloseBtnMobile.addEventListener("click", closeSearch);
+      if (searchCloseBottomBtn) searchCloseBottomBtn.addEventListener("click", closeSearch);
+
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && searchOverlay.dataset.state === "open") {
+          closeSearch();
+        }
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initSearchOverlay);
+    } else {
+      initSearchOverlay();
+    }
+  })();
 </script>
