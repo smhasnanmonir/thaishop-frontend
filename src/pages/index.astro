@@ -1,7 +1,7 @@
 ---
 export const prerender = true;
 import BaseLayout from "../layouts/BaseLayout.astro";
-import HeroCarousel from "../components/features/HeroCarousel.astro";
+import HeroSection from "../components/features/HeroSection.astro";
 import CategoryCard from "../components/ui/CategoryCard.astro";
 import ProductCard from "../components/ui/ProductCard.astro";
 import SkinConcernCard from "../components/ui/SkinConcernCard.astro";
@@ -11,7 +11,8 @@ import { api } from "../lib/api";
 
 import type { Slider, Category, SkinConcern, SkinType, Brand, Product } from "../lib/api";
 
-let heroSliders: Slider[] = [];
+let carouselSlides: Slider[] = [];
+let staticSlides: Slider[] = [];
 let categories: Category[] = [];
 let concerns: SkinConcern[] = [];
 let types: SkinType[] = [];
@@ -28,7 +29,10 @@ let selectedBrand: Brand | null = null;
 
 try {
   const homeData = await api.getHomeContent({ categoryLimit: 6, brandLimit: 6 });
-  heroSliders = homeData.heroSliders || [];
+  [carouselSlides, staticSlides] = await Promise.all([
+    api.getHeroCarousel(),
+    api.getHeroStatic(),
+  ]);
   categories = homeData.categories || [];
   concerns = homeData.concerns || [];
   types = homeData.types || [];
@@ -65,9 +69,9 @@ try {
 ---
 
 <BaseLayout>
-  {/* Hero Carousel */}
-  <div class="mx-auto px-4 md:px-6" style="max-width: 1536px;">
-    <HeroCarousel sliders={heroSliders} />
+  {/* Hero Section: carousel left, static promos right */}
+  <div class="mx-auto px-4 md:px-6 py-3 md:py-5" style="max-width: 1536px;">
+    <HeroSection carousel={carouselSlides} staticImages={staticSlides} />
   </div>
 
   {/* Section 1: Categories */}

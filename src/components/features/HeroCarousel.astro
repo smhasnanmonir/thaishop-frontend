@@ -3,9 +3,10 @@ import type { Slider } from "../../lib/api";
 
 interface Props {
   sliders: Slider[];
+  class?: string;
 }
 
-const { sliders = [] } = Astro.props;
+const { sliders = [], class: className = "" } = Astro.props;
 
 const fallbackSliders: Slider[] = [
   {
@@ -30,7 +31,7 @@ const items = sliders.length > 0 ? sliders : fallbackSliders;
 ---
 
 <div
-  class="relative w-full h-[260px] sm:h-[360px] md:h-[480px] bg-surface-dark overflow-hidden"
+  class:list={["relative w-full overflow-hidden", className]}
   aria-roledescription="carousel"
   aria-label="Featured Promotions"
 >
@@ -52,14 +53,14 @@ const items = sliders.length > 0 ? sliders : fallbackSliders;
               <img
                 src={slide.image_url}
                 alt={slide.name}
-                class="w-full h-full object-contain object-center"
+                class="w-full h-full object-cover object-center"
               />
             </a>
           ) : (
             <img
               src={slide.image_url}
               alt={slide.name}
-              class="w-full h-full object-contain object-center"
+              class="w-full h-full object-cover object-center"
             />
           )}
         </div>

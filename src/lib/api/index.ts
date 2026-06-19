@@ -3,7 +3,7 @@
 // need to change.
 
 export { API_BASE_URL, ApiError, apiFetch } from "./client";
-export { getHomeContent, getAllBrands, getAllCategories } from "./home";
+export { getHomeContent, getHeroCarousel, getHeroStatic, getAllBrands, getAllCategories } from "./home";
 export {
   getLatestProducts,
   getAllProducts,
@@ -59,7 +59,7 @@ export type { SEOMeta, BreadcrumbItem } from "../../types/seo";
 // `import { api } from "../../lib/api"` and then `api.getXxx()`.
 // The barrel re-exports individual functions above, and this
 // `api` object preserves the previous aggregated surface.
-import { getHomeContent, getAllBrands, getAllCategories } from "./home";
+import { getHomeContent, getHeroCarousel, getHeroStatic, getAllBrands, getAllCategories } from "./home";
 import {
   getLatestProducts,
   getAllProducts,
@@ -83,6 +83,8 @@ import {
 
 export const api = {
   getHomeContent,
+  getHeroCarousel,
+  getHeroStatic,
   getAllBrands,
   getAllCategories,
   getLatestProducts,
