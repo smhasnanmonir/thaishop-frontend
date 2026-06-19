@@ -8,8 +8,7 @@ import type { Category } from "../lib/api";
 
 let categories: Category[] = [];
 try {
-  const homeData = await api.getHomeContent();
-  categories = homeData.categories || [];
+  categories = await api.getAllCategories();
 } catch (error) {
   console.error("Failed to load categories list:", error);
 }

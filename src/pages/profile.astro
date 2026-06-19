@@ -1,0 +1,210 @@
+---
+export const prerender = false;
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { getSessionUser } from "../lib/session";
+
+// Protect route: redirect to login if not authenticated.
+const user = await getSessionUser(Astro.cookies);
+if (!user) {
+  return Astro.redirect("/login");
+}
+---
+
+<BaseLayout
+  title="My Profile | TOK Skincare Bangladesh"
+  description="Manage your TOK Skincare account profile."
+>
+  <div class="max-w-[1320px] mx-auto px-4 md:px-6 pt-6 pb-16 md:pb-24">
+    {/* Breadcrumb */}
+    <div class="mt-2 mb-10">
+      <div class="font-sans text-[11px] font-bold tracking-[1.5px] uppercase text-mute/70 flex items-center gap-1.5">
+        <a href="/" class="hover:text-primary transition-colors no-underline text-mute">Home</a>
+        <span class="text-stone">&bull;</span>
+        <span class="text-ink font-semibold">Profile</span>
+      </div>
+    </div>
+
+    {/* Account nav */}
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-10 border-b border-hairline">
+      <div class="flex gap-2">
+        <a href="/profile" class="font-sans text-[13px] font-bold tracking-[1px] uppercase text-ink border-b-2 border-ink pb-3 px-3 no-underline">Profile</a>
+        <a href="/orders" class="font-sans text-[13px] font-bold tracking-[1px] uppercase text-mute border-b-2 border-transparent pb-3 px-3 no-underline hover:text-ink transition-colors">My Orders</a>
+      </div>
+      <button
+        id="logout-btn"
+        class="font-sans text-[13px] font-bold tracking-[1px] uppercase text-mute bg-transparent border-none cursor-pointer hover:text-primary transition-colors pb-3 px-3"
+      >
+        Log Out
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8 items-start">
+      {/* Profile form card */}
+      <div class="bg-canvas border border-hairline p-6 md:p-10">
+        <div class="flex flex-col gap-2 mb-8">
+          <span class="font-sans text-[11px] font-bold tracking-[2px] uppercase text-primary leading-none">ACCOUNT</span>
+          <h1 class="font-serif text-[28px] md:text-[34px] font-bold text-ink leading-tight m-0">My Profile</h1>
+          <p class="font-sans text-[14px] text-mute m-0">Signed in as {user.email}</p>
+        </div>
+
+        <div class="flex flex-col gap-5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div class="flex flex-col gap-1.5">
+              <label for="pf-name" class="font-sans text-[13px] font-semibold text-ink">Full Name</label>
+              <input
+                type="text"
+                id="pf-name"
+                value={user.name}
+                class="w-full bg-canvas border border-stone text-ink px-4 h-12 rounded-none text-[15px] focus:border-ink focus:outline-none transition-colors"
+              />
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label for="pf-email" class="font-sans text-[13px] font-semibold text-ink">Email</label>
+              <input
+                type="email"
+                id="pf-email"
+                value={user.email}
+                disabled
+                class="w-full bg-surface-soft border border-hairline text-mute px-4 h-12 rounded-none text-[15px] outline-none cursor-not-allowed"
+              />
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label for="pf-phone" class="font-sans text-[13px] font-semibold text-ink">Phone</label>
+              <input
+                type="tel"
+                id="pf-phone"
+                value={user.phone || ""}
+                class="w-full bg-canvas border border-stone text-ink px-4 h-12 rounded-none text-[15px] focus:border-ink focus:outline-none transition-colors"
+                placeholder="01XXXXXXXXX"
+              />
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label for="pf-city" class="font-sans text-[13px] font-semibold text-ink">City</label>
+              <input
+                type="text"
+                id="pf-city"
+                value={user.city || ""}
+                class="w-full bg-canvas border border-stone text-ink px-4 h-12 rounded-none text-[15px] focus:border-ink focus:outline-none transition-colors"
+                placeholder="e.g. Dhaka"
+              />
+            </div>
+            <div class="flex flex-col gap-1.5 sm:col-span-2">
+              <label for="pf-address" class="font-sans text-[13px] font-semibold text-ink">Address</label>
+              <input
+                type="text"
+                id="pf-address"
+                value={user.address || ""}
+                class="w-full bg-canvas border border-stone text-ink px-4 h-12 rounded-none text-[15px] focus:border-ink focus:outline-none transition-colors"
+                placeholder="House, road, area"
+              />
+            </div>
+          </div>
+
+          <div class="flex items-center gap-4 pt-2">
+            <button
+              type="button"
+              id="pf-save-btn"
+              class="h-12 flex items-center justify-center bg-primary text-on-primary font-sans text-[13px] font-bold tracking-[1.2px] uppercase px-8 rounded-none cursor-pointer transition-colors hover:bg-primary-pressed"
+            >
+              Save Changes
+            </button>
+            <span id="pf-message" class="hidden font-sans text-[13px] p-2 rounded-none"></span>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick links card */}
+      <div class="bg-canvas border border-hairline p-6 md:p-8 flex flex-col gap-5">
+        <h2 class="font-serif text-[22px] font-bold text-ink m-0">Account</h2>
+        <div class="flex flex-col gap-2">
+          <a href="/orders" class="flex items-center justify-between py-3 border-b border-hairline-soft font-sans text-[14px] font-semibold text-ink no-underline hover:text-primary transition-colors">
+            <span>My Orders</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </a>
+          <a href="/cart" class="flex items-center justify-between py-3 border-b border-hairline-soft font-sans text-[14px] font-semibold text-ink no-underline hover:text-primary transition-colors">
+            <span>Shopping Bag</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </a>
+          <a href="/products" class="flex items-center justify-between py-3 font-sans text-[14px] font-semibold text-ink no-underline hover:text-primary transition-colors">
+            <span>Continue Shopping</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script is:inline>
+(function () {
+  function initProfile() {
+    var API = "https://backend.tokbd.com/api";
+    var saveBtn = document.getElementById("pf-save-btn");
+    var msgBox = document.getElementById("pf-message");
+    var logoutBtn = document.getElementById("logout-btn");
+
+    function showMessage(text, isError) {
+      if (!msgBox) return;
+      msgBox.textContent = text;
+      msgBox.classList.remove("hidden", "bg-surface-blush", "text-primary", "bg-success-pale", "text-success-deep");
+      msgBox.classList.add(isError ? "bg-surface-blush text-primary" : "bg-success-pale text-success-deep");
+    }
+
+    if (saveBtn) saveBtn.addEventListener("click", async function () {
+      var name = document.getElementById("pf-name").value.trim();
+      var phone = document.getElementById("pf-phone").value.trim();
+      var city = document.getElementById("pf-city").value.trim();
+      var address = document.getElementById("pf-address").value.trim();
+
+      if (!name || name.length < 2) { showMessage("Name must be at least 2 characters.", true); return; }
+
+      saveBtn.disabled = true;
+      saveBtn.innerText = "Saving...";
+      try {
+        var res = await fetch(API + "/auth/profile", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ name: name, phone: phone, city: city, address: address })
+        });
+        if (res.status === 401) {
+          var refresh = await fetch(API + "/auth/refresh", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" } });
+          if (refresh.ok) {
+            res = await fetch(API + "/auth/profile", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ name: name, phone: phone, city: city, address: address })
+            });
+          }
+        }
+        if (!res.ok) {
+          var err = await res.json().catch(function () { return { error: "Update failed" }; });
+          throw new Error(err.error || "Update failed");
+        }
+        showMessage("Profile updated successfully.", false);
+      } catch (err) {
+        showMessage(err.message || "Could not update profile.", true);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerText = "Save Changes";
+      }
+    });
+
+    if (logoutBtn) logoutBtn.addEventListener("click", async function () {
+      logoutBtn.disabled = true;
+      logoutBtn.innerText = "Logging out...";
+      try {
+        await fetch(API + "/auth/logout", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" } });
+      } catch (e) {}
+      window.location.href = "/login";
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initProfile);
+  } else {
+    initProfile();
+  }
+})();
+</script>

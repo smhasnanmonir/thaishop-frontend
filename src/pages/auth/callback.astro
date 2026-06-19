@@ -1,0 +1,8 @@
+---
+export const prerender = false;
+// Google OAuth success callback.
+// The backend sets HttpOnly auth cookies on the redirect response that
+// lands here, so we just need to send the user to their account.
+return Astro.redirect("/profile");
+---
+

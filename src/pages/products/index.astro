@@ -140,6 +140,7 @@ const activeFilterCount = Object.values(filters).reduce((sum, arr) => sum + (arr
       <aside
         class="fixed top-0 left-0 w-[300px] max-w-[85vw] h-full bg-canvas z-[1201] shadow-xl flex flex-col transition-transform duration-300"
         id="mobile-filter-panel"
+        style="transform: translateX(-100%);"
       >
         <div class="h-[60px] px-5 flex items-center justify-between border-b border-hairline shrink-0">
           <h3 class="font-sans text-[14px] font-bold text-ink m-0">Filters</h3>
@@ -289,10 +290,7 @@ const activeFilterCount = Object.values(filters).reduce((sum, arr) => sum + (arr
 </script>
 
 <style is:inline>
-  #mobile-filter-panel {
-    transform: translateX(-100%);
-  }
   #mobile-filter-panel.open {
-    transform: translateX(0);
+    transform: translateX(0) !important;
   }
 </style>

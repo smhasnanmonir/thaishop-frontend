@@ -1,0 +1,218 @@
+---
+export const prerender = false;
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Pagination from "../components/ui/Pagination.astro";
+import { getSessionUser } from "../lib/session";
+import { getUserOrders } from "../lib/api/user-orders";
+
+// Protect route: redirect to login if not authenticated.
+const user = await getSessionUser(Astro.cookies);
+if (!user) {
+  return Astro.redirect("/login");
+}
+
+const PAGE_SIZE = 10;
+const page = Math.max(1, parseInt(Astro.url.searchParams.get("page") || "1"));
+
+let orders: Awaited<ReturnType<typeof getUserOrders>>["orders"] = [];
+let totalPages = 1;
+let total = 0;
+
+try {
+  const data = await getUserOrders(page, PAGE_SIZE);
+  orders = data.orders || [];
+  total = data.total || 0;
+  totalPages = data.totalPages || 1;
+} catch (error) {
+  console.error("Failed to load user orders:", error);
+}
+
+function formatBDT(val: number | string) {
+  const n = typeof val === "string" ? parseFloat(val) : val;
+  if (isNaN(n)) return "\u09F30";
+  return "\u09F3" + n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function formatDate(iso: string) {
+  try {
+    return new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+  } catch {
+    return iso;
+  }
+}
+
+function statusClass(status: string) {
+  const s = (status || "").toLowerCase();
+  if (s === "delivered") return "bg-success-pale text-success-deep";
+  if (s === "cancelled") return "bg-surface-blush text-primary";
+  if (s === "pending" || s === "processing") return "bg-surface-soft text-ink";
+  return "bg-surface-soft text-mute";
+}
+---
+
+<BaseLayout
+  title="My Orders | TOK Skincare Bangladesh"
+  description="View your order history and track your TOK Skincare orders."
+>
+  <div class="max-w-[1536px] mx-auto px-[3%] md:px-6 pt-4 pb-16 md:pb-24">
+    {/* Breadcrumb */}
+    <div class="mt-4 mb-6">
+      <div class="font-sans text-[11px] font-bold tracking-[1.5px] uppercase text-mute/70 flex items-center gap-1.5">
+        <a href="/" class="hover:text-primary transition-colors no-underline text-mute">Home</a>
+        <span class="text-stone">&bull;</span>
+        <span class="text-ink font-semibold">Orders</span>
+      </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto">
+      {/* Header */}
+      <div class="flex flex-col items-center text-center gap-2.5 mb-10">
+        <span class="font-sans text-[12px] font-bold tracking-[2.5px] uppercase text-primary leading-none">ACCOUNT</span>
+        <h1 class="font-sans text-[28px] md:text-[34px] font-bold text-ink leading-tight m-0">My Orders</h1>
+        <p class="font-sans text-[14px] text-mute m-0">Signed in as {user.email}</p>
+      </div>
+
+      {/* Account nav */}
+      <div class="flex gap-2 mb-8 border-b border-hairline">
+        <a href="/profile" class="font-sans text-[13px] font-bold tracking-[1px] uppercase text-mute border-b-2 border-transparent pb-3 px-3 no-underline hover:text-ink transition-colors">Profile</a>
+        <a href="/orders" class="font-sans text-[13px] font-bold tracking-[1px] uppercase text-ink border-b-2 border-ink pb-3 px-3 no-underline">My Orders</a>
+        <button id="logout-btn" class="ml-auto font-sans text-[13px] font-bold tracking-[1px] uppercase text-mute border-b-2 border-transparent pb-3 px-3 bg-transparent cursor-pointer hover:text-primary transition-colors">Log Out</button>
+      </div>
+
+      {/* Orders list */}
+      {orders.length > 0 ? (
+        <div class="flex flex-col gap-4">
+          {orders.map((order) => (
+            <div class="bg-canvas border border-hairline p-5 flex flex-col gap-3">
+              <div class="flex items-center justify-between gap-3 flex-wrap">
+                <div class="flex flex-col gap-0.5">
+                  <span class="font-sans text-[11px] font-bold tracking-[1px] uppercase text-mute">Order</span>
+                  <span class="font-sans text-[15px] font-bold text-ink">#{order.id.slice(0, 8).toUpperCase()}</span>
+                </div>
+                <span class:list={["font-sans text-[11px] font-bold tracking-[1px] uppercase px-3 py-1.5", statusClass(order.status)]}>
+                  {order.status}
+                </span>
+              </div>
+
+              <div class="flex items-center justify-between gap-3 flex-wrap border-t border-hairline-soft pt-3">
+                <div class="flex flex-col gap-0.5">
+                  <span class="font-sans text-[11px] text-mute uppercase tracking-[0.5px]">Placed</span>
+                  <span class="font-sans text-[14px] font-semibold text-ink">{formatDate(order.createdAt)}</span>
+                </div>
+                <div class="flex flex-col gap-0.5 items-end">
+                  <span class="font-sans text-[11px] text-mute uppercase tracking-[0.5px]">Total</span>
+                  <span class="font-sans text-[18px] font-bold text-primary">{formatBDT(order.totalAmount)}</span>
+                </div>
+              </div>
+
+              {order.items && order.items.length > 0 && (
+                <div class="flex gap-2 flex-wrap border-t border-hairline-soft pt-3">
+                  {order.items.slice(0, 4).map((item) => (
+                    <div class="w-12 h-16 border border-hairline-soft overflow-hidden bg-surface-card shrink-0">
+                      {item.image && <img src={item.image} alt={item.name} class="w-full h-full object-cover" loading="lazy" />}
+                    </div>
+                  ))}
+                  {order.items.length > 4 && (
+                    <div class="w-12 h-16 border border-hairline-soft flex items-center justify-center font-sans text-[12px] font-bold text-mute bg-surface-card shrink-0">
+                      +{order.items.length - 4}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {(order.status || "").toLowerCase() === "pending" && (
+                <div class="border-t border-hairline-soft pt-3 flex justify-end">
+                  <button
+                    class="font-sans text-[12px] font-bold tracking-[1px] uppercase text-mute border border-hairline px-4 py-2 hover:text-primary hover:border-primary transition-colors cursor-pointer bg-transparent cancel-order-btn"
+                    data-order-id={order.id}
+                  >
+                    Cancel Order
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {totalPages > 1 && (
+            <div class="flex items-center justify-center border-t border-hairline pt-6 mt-4">
+              <Pagination currentPage={page} totalPages={totalPages} />
+            </div>
+          )}
+        </div>
+      ) : (
+        <div class="flex flex-col items-center justify-center py-20 text-center gap-6 border border-dashed border-hairline">
+          <div class="text-stone">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 01-8 0"></path></svg>
+          </div>
+          <div class="flex flex-col gap-2 max-w-[400px]">
+            <h2 class="font-serif text-heading-xl text-ink font-bold m-0">No Orders Yet</h2>
+            <p class="font-sans text-[15px] text-mute leading-relaxed m-0">When you place your first order, it will show up here.</p>
+          </div>
+          <a href="/products" class="inline-flex items-center justify-center bg-primary text-on-primary font-sans text-[13px] font-bold tracking-[1.2px] uppercase h-12 px-8 rounded-none no-underline transition-colors duration-150 hover:bg-primary-pressed">Start Shopping</a>
+        </div>
+      )}
+    </div>
+  </div>
+</BaseLayout>
+
+<script is:inline>
+(function () {
+  function initOrders() {
+    var API = "https://backend.tokbd.com/api";
+    var logoutBtn = document.getElementById("logout-btn");
+    var cancelBtns = document.querySelectorAll(".cancel-order-btn");
+
+    if (logoutBtn) logoutBtn.addEventListener("click", async function () {
+      logoutBtn.disabled = true;
+      logoutBtn.innerText = "Logging out...";
+      try {
+        await fetch(API + "/auth/logout", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" } });
+      } catch (e) { /* ignore */ }
+      window.location.href = "/login";
+    });
+
+    cancelBtns.forEach(function (btn) {
+      btn.addEventListener("click", async function () {
+        var orderId = btn.getAttribute("data-order-id");
+        if (!orderId) return;
+        if (!confirm("Cancel this order? This cannot be undone.")) return;
+
+        btn.disabled = true;
+        btn.innerText = "Cancelling...";
+        try {
+          var res = await fetch(API + "/orders/" + orderId + "/cancel", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" }
+          });
+          if (res.status === 401) {
+            var refresh = await fetch(API + "/auth/refresh", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" } });
+            if (refresh.ok) {
+              res = await fetch(API + "/orders/" + orderId + "/cancel", {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" }
+              });
+            }
+          }
+          if (!res.ok) {
+            var err = await res.json().catch(function () { return { error: "Cancel failed" }; });
+            throw new Error(err.error || "Cancel failed");
+          }
+          window.location.reload();
+        } catch (err) {
+          alert(err.message || "Could not cancel order.");
+          btn.disabled = false;
+          btn.innerText = "Cancel Order";
+        }
+      });
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initOrders);
+  } else {
+    initOrders();
+  }
+})();
+</script>

@@ -4,6 +4,23 @@ import CheckoutLayout from "../../layouts/CheckoutLayout.astro";
 ---
 
 <CheckoutLayout title="Secure Checkout | TOK Skincare">
+  <!-- Empty State -->
+  <div id="checkout-empty-state" class="hidden">
+    <div class="flex flex-col items-center justify-center py-20 text-center gap-6 border border-dashed border-hairline">
+      <div class="text-stone">
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 01-8 0"></path></svg>
+      </div>
+      <div class="flex flex-col gap-2 max-w-[400px]">
+        <h2 class="font-serif text-heading-xl text-ink font-bold m-0">No Products to Checkout</h2>
+        <p class="font-sans text-[15px] text-mute leading-relaxed m-0">Your bag is empty. Add some products to continue.</p>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-3">
+        <a href="/products" class="inline-flex items-center justify-center bg-primary text-on-primary font-sans text-[13px] font-bold tracking-[1.2px] uppercase h-12 px-8 rounded-none no-underline transition-colors duration-150 hover:bg-primary-pressed">Continue Shopping</a>
+        <a href="/" class="inline-flex items-center justify-center bg-transparent text-ink border border-hairline font-sans text-[13px] font-bold tracking-[1.2px] uppercase h-12 px-8 rounded-none no-underline transition-colors duration-150 hover:bg-surface-blush">Back to Home</a>
+      </div>
+    </div>
+  </div>
+
   <!-- Main Checkout Screen -->
   <div id="checkout-main-screen" class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
     
@@ -162,8 +179,11 @@ import CheckoutLayout from "../../layouts/CheckoutLayout.astro";
       } catch(e) { items = []; }
 
       if (items.length === 0) {
-        // Redirect to products page if cart is accessed empty
-        window.location.href = '/products';
+        // Show empty state instead of redirect
+        const emptyState = document.getElementById('checkout-empty-state');
+        const mainScreen = document.getElementById('checkout-main-screen');
+        if (emptyState) emptyState.classList.remove('hidden');
+        if (mainScreen) mainScreen.classList.add('hidden');
         return;
       }
 

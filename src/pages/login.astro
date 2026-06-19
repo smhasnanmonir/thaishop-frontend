@@ -1,0 +1,320 @@
+---
+export const prerender = false;
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { getSessionUser } from "../lib/session";
+
+// If already logged in, redirect to profile.
+const user = await getSessionUser(Astro.cookies);
+if (user) {
+  return Astro.redirect("/profile");
+}
+---
+
+<BaseLayout
+  title="Login | TOK Skincare Bangladesh"
+  description="Sign in to your TOK Skincare account to view your orders and manage your profile."
+>
+  <div class="max-w-[1320px] mx-auto px-4 md:px-6 pt-6 pb-16 md:pb-24">
+    {/* Breadcrumb */}
+    <div class="mt-2 mb-10">
+      <div class="font-sans text-[11px] font-bold tracking-[1.5px] uppercase text-mute/70 flex items-center gap-1.5">
+        <a href="/" class="hover:text-primary transition-colors no-underline text-mute">Home</a>
+        <span class="text-stone">&bull;</span>
+        <span class="text-ink font-semibold">Login</span>
+      </div>
+    </div>
+
+    {/* Login card */}
+    <div class="max-w-[480px] mx-auto bg-canvas border border-hairline p-8 md:p-10 shadow-[0_8px_30px_rgba(26,14,20,0.08)]">
+      <div class="flex flex-col items-center text-center gap-3 mb-8">
+        <span class="font-sans text-[11px] font-bold tracking-[2px] uppercase text-primary leading-none">ACCOUNT</span>
+        <h1 class="font-serif text-[32px] md:text-[40px] font-bold text-ink leading-[1.1] m-0">Welcome Back</h1>
+        <p class="font-sans text-[15px] text-mute m-0 leading-relaxed">
+          Sign in or create an account to track your orders.
+        </p>
+      </div>
+
+      <div id="auth-card" class="flex flex-col gap-5">
+        {/* Step 1: Email + Name */}
+        <div id="auth-step-1" class="flex flex-col gap-5">
+          <div class="flex flex-col gap-1.5">
+            <label for="auth-email" class="font-sans text-[13px] font-semibold text-ink">Email Address <span class="text-primary">*</span></label>
+            <input
+              type="email"
+              id="auth-email"
+              required
+              class="w-full bg-canvas border border-stone text-ink px-4 h-12 rounded-none text-[15px] focus:border-ink focus:outline-none transition-colors"
+              placeholder="you@gmail.com"
+              autocomplete="email"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1.5" id="name-field-wrap" style="display:none;">
+            <label for="auth-name" class="font-sans text-[13px] font-semibold text-ink">Full Name <span class="text-primary">*</span></label>
+            <input
+              type="text"
+              id="auth-name"
+              class="w-full bg-canvas border border-stone text-ink px-4 h-12 rounded-none text-[15px] focus:border-ink focus:outline-none transition-colors"
+              placeholder="Your name"
+              autocomplete="name"
+            />
+          </div>
+
+          <button
+            type="button"
+            id="auth-submit-btn"
+            class="w-full h-12 flex items-center justify-center bg-primary text-on-primary font-sans text-[13px] font-bold tracking-[1.2px] uppercase rounded-none cursor-pointer transition-colors hover:bg-primary-pressed"
+          >
+            Continue
+          </button>
+
+          <button
+            type="button"
+            id="auth-toggle-btn"
+            class="w-full h-10 flex items-center justify-center bg-transparent text-ink border-2 border-ink font-sans text-[13px] font-bold tracking-[1.2px] uppercase rounded-none cursor-pointer transition-colors hover:bg-surface-blush"
+          >
+            New here? Create an account
+          </button>
+        </div>
+
+        {/* Step 2: OTP */}
+        <div id="auth-step-2" class="flex flex-col gap-5" style="display:none;">
+          <p class="font-sans text-[14px] text-mute m-0 leading-relaxed" id="otp-instructions">
+            We sent an 8-character verification code to your email. Enter it below.
+          </p>
+
+          <div class="flex flex-col gap-1.5">
+            <label for="auth-otp" class="font-sans text-[13px] font-semibold text-ink">Verification Code <span class="text-primary">*</span></label>
+            <input
+              type="text"
+              id="auth-otp"
+              required
+              class="w-full bg-canvas border border-stone text-ink px-4 h-12 rounded-none text-[15px] tracking-[0.2em] uppercase focus:border-ink focus:outline-none transition-colors"
+              placeholder="AbC12345"
+              autocomplete="one-time-code"
+              maxlength="8"
+            />
+          </div>
+
+          <button
+            type="button"
+            id="auth-verify-btn"
+            class="w-full h-12 flex items-center justify-center bg-primary text-on-primary font-sans text-[13px] font-bold tracking-[1.2px] uppercase rounded-none cursor-pointer transition-colors hover:bg-primary-pressed"
+          >
+            Verify & Sign In
+          </button>
+
+          <div class="flex items-center justify-between gap-3 pt-1">
+            <button
+              type="button"
+              id="auth-resend-btn"
+              class="font-sans text-[13px] font-semibold text-primary bg-transparent border-none cursor-pointer hover:underline underline-offset-4"
+            >
+              Resend code
+            </button>
+            <button
+              type="button"
+              id="auth-back-btn"
+              class="font-sans text-[13px] font-semibold text-mute bg-transparent border-none cursor-pointer hover:text-ink transition-colors"
+            >
+              Use a different email
+            </button>
+          </div>
+        </div>
+
+        {/* Message */}
+        <div id="auth-message" class="hidden font-sans text-[13px] p-3 rounded-none text-center" role="alert"></div>
+      </div>
+
+      <p class="font-sans text-[11px] text-mute text-center mt-8 leading-relaxed">
+        By continuing you agree to our terms. We use secure HttpOnly cookies to keep you signed in.
+      </p>
+    </div>
+  </div>
+</BaseLayout>
+
+<script is:inline>
+(function () {
+  function initAuth() {
+    var API = "https://backend.tokbd.com/api";
+    var step1 = document.getElementById("auth-step-1");
+    var step2 = document.getElementById("auth-step-2");
+    var nameFieldWrap = document.getElementById("name-field-wrap");
+    var emailInput = document.getElementById("auth-email");
+    var nameInput = document.getElementById("auth-name");
+    var otpInput = document.getElementById("auth-otp");
+    var submitBtn = document.getElementById("auth-submit-btn");
+    var toggleBtn = document.getElementById("auth-toggle-btn");
+    var verifyBtn = document.getElementById("auth-verify-btn");
+    var resendBtn = document.getElementById("auth-resend-btn");
+    var backBtn = document.getElementById("auth-back-btn");
+    var msgBox = document.getElementById("auth-message");
+
+    var isRegister = false;
+    var currentEmail = "";
+
+    function deviceInfo() {
+      var ua = navigator.userAgent || "";
+      var deviceType = /Mobi|Android|iPhone|iPod/i.test(ua) ? "mobile" : /Tablet|iPad/i.test(ua) ? "tablet" : "desktop";
+      return { deviceType: deviceType, browserType: ua };
+    }
+
+    function showMessage(text, isError) {
+      if (!msgBox) return;
+      msgBox.textContent = text;
+      msgBox.classList.remove("hidden", "bg-surface-blush", "text-primary", "bg-success-pale", "text-success-deep");
+      if (isError) {
+        msgBox.classList.add("bg-surface-blush", "text-primary");
+      } else {
+        msgBox.classList.add("bg-success-pale", "text-success-deep");
+      }
+    }
+
+    function clearMessage() {
+      if (msgBox) msgBox.classList.add("hidden");
+    }
+
+    function setLoading(btn, loading, defaultText) {
+      if (!btn) return;
+      if (loading) {
+        btn.disabled = true;
+        if (!btn.hasAttribute("data-default-text")) btn.setAttribute("data-default-text", btn.innerText);
+        btn.innerText = "Please wait...";
+      } else {
+        btn.disabled = false;
+        btn.innerText = btn.getAttribute("data-default-text") || defaultText;
+      }
+    }
+
+    function validEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    if (toggleBtn) toggleBtn.addEventListener("click", function () {
+      isRegister = !isRegister;
+      if (isRegister) {
+        if (nameFieldWrap) nameFieldWrap.style.display = "flex";
+        if (toggleBtn) toggleBtn.innerText = "Already have an account? Sign in";
+        if (submitBtn) submitBtn.innerText = "Create Account";
+      } else {
+        if (nameFieldWrap) nameFieldWrap.style.display = "none";
+        if (toggleBtn) toggleBtn.innerText = "New here? Create an account";
+        if (submitBtn) submitBtn.innerText = "Continue";
+      }
+      clearMessage();
+    });
+
+    if (submitBtn) submitBtn.addEventListener("click", async function () {
+      clearMessage();
+      var email = emailInput.value.trim();
+      if (!validEmail(email)) { showMessage("Please enter a valid email address.", true); return; }
+
+      setLoading(submitBtn, true, "Continue");
+      try {
+        if (isRegister) {
+          var name = nameInput.value.trim();
+          if (!name || name.length < 2) {
+            setLoading(submitBtn, false, "Create Account");
+            showMessage("Please enter your full name (min 2 characters).", true);
+            return;
+          }
+          var regBody = Object.assign({ email: email, name: name }, deviceInfo());
+          var regRes = await fetch(API + "/auth/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(regBody)
+          });
+          if (!regRes.ok) {
+            var regErr = await regRes.json().catch(function () { return { error: "Registration failed" }; });
+            throw new Error(regErr.error || "Registration failed");
+          }
+        } else {
+          var otpRes = await fetch(API + "/auth/request-otp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email })
+          });
+          if (!otpRes.ok) {
+            var otpErr = await otpRes.json().catch(function () { return { error: "Could not send code" }; });
+            throw new Error(otpErr.error || "Could not send code. Check your email.");
+          }
+        }
+        currentEmail = email;
+        if (step1) step1.style.display = "none";
+        if (step2) step2.style.display = "flex";
+        if (otpInput) otpInput.focus();
+      } catch (err) {
+        showMessage(err.message || "Something went wrong.", true);
+      } finally {
+        setLoading(submitBtn, false, isRegister ? "Create Account" : "Continue");
+      }
+    });
+
+    async function doVerify() {
+      clearMessage();
+      var otp = otpInput.value.trim();
+      if (!otp || otp.length !== 8) { showMessage("Enter the 8-character verification code.", true); return; }
+
+      setLoading(verifyBtn, true, "Verify & Sign In");
+      try {
+        var loginBody = Object.assign({ email: currentEmail, otp: otp }, deviceInfo());
+        var loginRes = await fetch(API + "/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(loginBody),
+          credentials: "include"
+        });
+        if (!loginRes.ok) {
+          var loginErr = await loginRes.json().catch(function () { return { error: "Invalid code" }; });
+          throw new Error(loginErr.error || "Invalid verification code.");
+        }
+        window.location.href = "/profile";
+      } catch (err) {
+        showMessage(err.message || "Verification failed.", true);
+      } finally {
+        setLoading(verifyBtn, false, "Verify & Sign In");
+      }
+    }
+
+    if (verifyBtn) verifyBtn.addEventListener("click", doVerify);
+    if (otpInput) otpInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); doVerify(); }
+    });
+
+    if (resendBtn) resendBtn.addEventListener("click", async function () {
+      clearMessage();
+      setLoading(resendBtn, true, "Resend code");
+      try {
+        var res = await fetch(API + "/auth/request-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: currentEmail })
+        });
+        if (!res.ok) throw new Error("Could not resend code.");
+        showMessage("A new code has been sent to your email.", false);
+      } catch (err) {
+        showMessage(err.message || "Resend failed.", true);
+      } finally {
+        setLoading(resendBtn, false, "Resend code");
+      }
+    });
+
+    if (backBtn) backBtn.addEventListener("click", function () {
+      if (step2) step2.style.display = "none";
+      if (step1) step1.style.display = "flex";
+      if (otpInput) otpInput.value = "";
+      clearMessage();
+    });
+
+    if (emailInput) emailInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); if (submitBtn) submitBtn.click(); }
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initAuth);
+  } else {
+    initAuth();
+  }
+})();
+</script>

@@ -5,7 +5,7 @@
 
 import { defineMiddleware } from "astro:middleware";
 
-const NOINDEX_PATHS = ["/checkout", "/cart"];
+const NOINDEX_PATHS = ["/checkout", "/cart", "/profile", "/orders", "/login", "/auth"];
 const CANONICAL_HOST = "tokbd.com";
 
 const STATIC_ASSET_PREFIXES = ["/_astro/", "/favicon", "/og/", "/fonts/"];
