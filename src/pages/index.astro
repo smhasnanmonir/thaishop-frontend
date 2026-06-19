@@ -27,7 +27,7 @@ let brandProducts: Product[] = [];
 let selectedBrand: Brand | null = null;
 
 try {
-  const homeData = await api.getHomeContent();
+  const homeData = await api.getHomeContent(6, 6);
   heroSliders = homeData.heroSliders || [];
   categories = homeData.categories || [];
   concerns = homeData.concerns || [];
@@ -80,7 +80,7 @@ try {
 
       {categories.length > 0 ? (
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 md:gap-4">
-          {categories.slice(0, 6).map(cat => (
+          {categories.map(cat => (
             <CategoryCard category={cat} />
           ))}
         </div>
@@ -106,7 +106,7 @@ try {
 
       {brands.length > 0 ? (
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 md:gap-4">
-          {brands.sort(() => Math.random() - 0.5).slice(0, 6).map(br => (
+          {brands.sort(() => Math.random() - 0.5).map(br => (
             <BrandCard brand={br} />
           ))}
         </div>
