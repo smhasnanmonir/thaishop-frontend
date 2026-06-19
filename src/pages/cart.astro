@@ -37,7 +37,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
             <div class="flex flex-col gap-3 border-b border-hairline-soft pb-5">
               <div class="flex justify-between font-sans text-[15px] text-body">
                 <span>Items Subtotal</span>
-                <span class="font-serif text-[18px] font-semibold text-ink" id="cart-summary-subtotal">৳0</span>
+                <span class="font-sans text-[18px] font-semibold text-ink" id="cart-summary-subtotal">৳0</span>
               </div>
               <div class="flex justify-between font-sans text-[15px] text-body">
                 <span>Estimated Shipping</span>
@@ -47,7 +47,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 
             <div class="flex justify-between items-baseline">
               <span class="font-sans text-[18px] font-bold text-ink">Estimated Total</span>
-              <span class="font-serif text-[26px] font-bold text-primary leading-none" id="cart-summary-total">৳0</span>
+              <span class="font-sans text-[26px] font-bold text-primary leading-none" id="cart-summary-total">৳0</span>
             </div>
 
             <a
@@ -140,7 +140,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
             </div>
             <div class="flex flex-col gap-1 min-w-0">
               <h3 class="font-sans text-[15px] font-semibold text-ink leading-snug line-clamp-2 m-0">${escapeAttr(item.name)}</h3>
-              <span class="font-serif text-[18px] font-semibold text-primary">${formatBDT(item.price)}</span>
+              <span class="font-sans text-[18px] font-semibold text-primary">${formatBDT(item.price)}</span>
             </div>
           </a>
 
@@ -151,7 +151,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
               <button class="w-10 h-full flex items-center justify-center font-bold text-[14px] text-ink hover:bg-secondary-bg cursor-pointer transition-colors cart-inc-btn" data-id="${item.productId}" aria-label="Increase quantity">+</button>
             </div>
 
-            <span class="font-serif text-[20px] font-semibold text-ink w-24 text-right">${formatBDT(item.price * item.quantity)}</span>
+            <span class="font-sans text-[20px] font-semibold text-ink w-24 text-right">${formatBDT(item.price * item.quantity)}</span>
 
             <button class="text-mute hover:text-error cursor-pointer transition-colors cart-remove-btn" data-id="${item.productId}" aria-label="Remove item">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">

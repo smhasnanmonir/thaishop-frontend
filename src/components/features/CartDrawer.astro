@@ -47,7 +47,7 @@
     <div class="border-t border-hairline p-6 bg-canvas flex flex-col gap-3" id="cart-summary-footer" style="display: none;">
       <div class="flex justify-between items-center font-sans text-[16px] font-bold text-ink">
         <span>Subtotal</span>
-        <span class="font-serif text-[20px] text-ink" id="cart-subtotal-val">৳0</span>
+        <span class="font-sans text-[20px] text-ink" id="cart-subtotal-val">৳0</span>
       </div>
       <p class="text-[12px] text-mute">Delivery charge calculated during checkout.</p>
 
@@ -140,7 +140,7 @@
             '</div>' +
             '<div class="grow flex flex-col gap-1">' +
               '<h4 class="font-sans text-[14px] font-semibold text-ink leading-snug line-clamp-2">' + item.name + '</h4>' +
-              '<span class="font-serif text-[15px] font-bold text-primary">' + formatBDT(item.price) + '</span>' +
+              '<span class="font-sans text-[15px] font-bold text-primary">' + formatBDT(item.price) + '</span>' +
               '<div class="flex items-center justify-between mt-auto">' +
                 '<div class="flex items-center border border-hairline rounded-none h-7 bg-surface-soft">' +
                   '<button class="w-7 h-full flex items-center justify-center font-bold text-[12px] text-ink hover:bg-secondary-bg cursor-pointer dec-btn" data-id="' + item.productId + '" aria-label="Decrease quantity">-</button>' +

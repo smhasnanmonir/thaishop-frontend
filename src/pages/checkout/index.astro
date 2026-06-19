@@ -105,15 +105,15 @@ import CheckoutLayout from "../../layouts/CheckoutLayout.astro";
         <div class="border-t border-hairline pt-4 flex flex-col gap-2">
           <div class="flex justify-between font-sans text-body-sm text-mute">
             <span>Items Subtotal:</span>
-            <span class="font-serif text-[18px] font-semibold text-ink" id="checkout-subtotal">৳0</span>
+            <span class="font-sans text-[18px] font-semibold text-ink" id="checkout-subtotal">৳0</span>
           </div>
           <div class="flex justify-between font-sans text-body-sm text-mute">
             <span>Delivery Charge:</span>
-            <span class="font-serif text-[18px] font-semibold text-ink" id="checkout-shipping">৳80</span>
+            <span class="font-sans text-[18px] font-semibold text-ink" id="checkout-shipping">৳80</span>
           </div>
           <div class="border-t border-hairline-soft pt-2 mt-2 flex justify-between font-sans text-[18px] font-bold text-ink">
             <span>Total Payable:</span>
-            <span class="font-serif text-[24px] font-bold text-primary" id="checkout-total">৳0</span>
+            <span class="font-sans text-[24px] font-bold text-primary" id="checkout-total">৳0</span>
           </div>
         </div>
 
@@ -184,10 +184,10 @@ import CheckoutLayout from "../../layouts/CheckoutLayout.astro";
               </div>
               <div class="flex flex-col">
                 <span class="font-sans text-[13px] font-semibold text-ink line-clamp-1 max-w-[200px]">${item.name}</span>
-                <span class="font-sans text-[11px] text-mute">Qty: ${item.quantity} &bull; <span class="font-serif font-semibold">${formatBDT(item.price)}</span></span>
+                <span class="font-sans text-[11px] text-mute">Qty: ${item.quantity} &bull; <span class="font-sans font-semibold">${formatBDT(item.price)}</span></span>
               </div>
             </div>
-            <span class="font-serif text-[16px] font-semibold text-ink">${formatBDT(item.price * item.quantity)}</span>
+            <span class="font-sans text-[16px] font-semibold text-ink">${formatBDT(item.price * item.quantity)}</span>
           `;
           itemsList.appendChild(card);
         });

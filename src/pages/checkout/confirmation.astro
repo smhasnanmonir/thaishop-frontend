@@ -54,15 +54,15 @@ import CheckoutLayout from "../../layouts/CheckoutLayout.astro";
         <footer class="border-t border-hairline p-6 flex flex-col gap-2 bg-surface-soft">
           <div class="flex justify-between font-sans text-body-sm text-mute">
             <span>Items Subtotal</span>
-            <span class="font-serif text-[18px] font-semibold text-ink" id="conf-subtotal">৳0</span>
+            <span class="font-sans text-[18px] font-semibold text-ink" id="conf-subtotal">৳0</span>
           </div>
           <div class="flex justify-between font-sans text-body-sm text-mute">
             <span>Delivery Charge</span>
-            <span class="font-serif text-[18px] font-semibold text-ink" id="conf-shipping">৳0</span>
+            <span class="font-sans text-[18px] font-semibold text-ink" id="conf-shipping">৳0</span>
           </div>
           <div class="border-t border-hairline-soft pt-3 mt-1 flex justify-between items-baseline">
             <span class="font-sans text-[15px] font-bold text-ink uppercase tracking-[0.5px]">Total Payable</span>
-            <span class="font-serif text-[28px] font-bold text-primary leading-none" id="conf-total">৳0</span>
+            <span class="font-sans text-[28px] font-bold text-primary leading-none" id="conf-total">৳0</span>
           </div>
           <p class="font-sans text-[11px] text-mute text-center leading-relaxed mt-2 m-0">
             Pay in cash to the delivery agent when your order arrives.
@@ -277,7 +277,7 @@ import CheckoutLayout from "../../layouts/CheckoutLayout.astro";
             <span class="font-sans text-caption text-mute">Qty: ${item.quantity || 1}</span>
           </div>
           <div class="shrink-0 text-right">
-            <span class="font-serif text-[18px] md:text-[20px] font-semibold text-ink leading-none">${formatBDT(item.price * item.quantity)}</span>
+            <span class="font-sans text-[18px] md:text-[20px] font-semibold text-ink leading-none">${formatBDT(item.price * item.quantity)}</span>
           </div>
         `;
         itemsList.appendChild(row);
