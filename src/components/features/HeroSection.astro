@@ -15,24 +15,29 @@ const staticItems = staticImages.slice(0, 2);
 <section
   class:list={[
     "grid grid-cols-1 gap-3 md:gap-4",
-    hasStatic ? "lg:grid-cols-[1.55fr_1fr]" : "lg:grid-cols-1",
-    "lg:h-[460px] xl:h-[520px] 2xl:h-[580px]",
+    hasStatic ? "lg:grid-cols-[2fr_1fr]" : "lg:grid-cols-1",
   ]}
 >
   {/* Slider */}
-  <div class="relative rounded-2xl overflow-hidden h-[300px] sm:h-[360px] md:h-[420px] lg:h-full">
+  <div
+    class:list={[
+      "relative rounded-2xl overflow-hidden",
+      "aspect-[16/9]",
+      hasStatic ? "lg:aspect-auto lg:h-full" : "lg:aspect-[16/9]",
+    ]}
+  >
     <HeroCarousel sliders={carousel} class="h-full" />
   </div>
 
   {/* Static promotional images */}
   {
     hasStatic && (
-      <div class="grid grid-cols-2 lg:grid-cols-1 gap-3 md:gap-4 h-full">
+      <div class="grid grid-cols-2 lg:grid-cols-1 gap-3 md:gap-4">
         {staticItems.map((img) =>
           img.redirect_url ? (
             <a
               href={img.redirect_url}
-              class="relative rounded-2xl overflow-hidden block h-[160px] lg:h-full group"
+              class="relative rounded-2xl overflow-hidden block aspect-[16/9] group"
             >
               <img
                 src={img.image_url}
@@ -42,7 +47,7 @@ const staticItems = staticImages.slice(0, 2);
               />
             </a>
           ) : (
-            <div class="relative rounded-2xl overflow-hidden h-[160px] lg:h-full group">
+            <div class="relative rounded-2xl overflow-hidden aspect-[16/9] group">
               <img
                 src={img.image_url}
                 alt={img.name}
