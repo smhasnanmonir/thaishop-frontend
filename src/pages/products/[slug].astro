@@ -81,8 +81,7 @@ const sizes = safeParseArray(product.details?.sizes);
       ]}
     />
   </Fragment>
-  <div class="max-w-[1536px] mx-auto px-4 md:px-6 pt-4 pb-16 md:pb-24">
-  <div class="max-w-[1536px] mx-auto px-4 md:px-6 pt-4 pb-16 md:pb-24">
+  <div class="max-w-[1536px] mx-auto px-1 md:px-6 pt-1 pb-16 md:pb-24">
     {/* Breadcrumbs */}
     <Breadcrumb
       items={[
@@ -202,7 +201,7 @@ const sizes = safeParseArray(product.details?.sizes);
               </div>
 
               {/* CTA Buttons Row */}
-              <div class="flex flex-col sm:flex-row gap-2 w-full">
+              <div class="flex flex-col sm:flex-row gap-2 w-full h-auto min-h-[56px] sm:min-h-[52px]">
                 <AddToCartButton
                   id="pdp-add-to-bag-btn"
                   productId={product.id}
