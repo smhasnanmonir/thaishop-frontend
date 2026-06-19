@@ -80,7 +80,7 @@ try {
 
       {categories.length > 0 ? (
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 md:gap-4">
-          {categories.slice(0, 8).map(cat => (
+          {categories.slice(0, 6).map(cat => (
             <CategoryCard category={cat} />
           ))}
         </div>
@@ -106,7 +106,7 @@ try {
 
       {brands.length > 0 ? (
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 md:gap-4">
-          {brands.sort(() => Math.random() - 0.5).slice(0, 8).map(br => (
+          {brands.sort(() => Math.random() - 0.5).slice(0, 6).map(br => (
             <BrandCard brand={br} />
           ))}
         </div>
