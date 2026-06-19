@@ -27,7 +27,7 @@ let brandProducts: Product[] = [];
 let selectedBrand: Brand | null = null;
 
 try {
-  const homeData = await api.getHomeContent(6, 6);
+  const homeData = await api.getHomeContent({ categoryLimit: 6, brandLimit: 6 });
   heroSliders = homeData.heroSliders || [];
   categories = homeData.categories || [];
   concerns = homeData.concerns || [];
