@@ -1,33 +1,72 @@
 ---
-export const prerender = true;
+export const prerender = false;
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import ProductCard from "../../components/ui/ProductCard.astro";
+import Pagination from "../../components/ui/Pagination.astro";
 import { api } from "../../lib/api";
+import type { Category, Brand, SkinConcern, SkinType, Product, ProductFilter } from "../../lib/api";
 
-import type { Category, Brand, SkinConcern, SkinType, Product } from "../../lib/api";
+const PAGE_SIZE = 20;
 
+// ── Parse URL params ──
+const page = Math.max(1, parseInt(Astro.url.searchParams.get("page") || "1"));
+const filtersParam = Astro.url.searchParams.get("filters") || "";
+
+function parseFilters(raw: string): ProductFilter {
+  const filters: ProductFilter = {};
+  if (!raw) return filters;
+  raw.split(",").forEach((pair) => {
+    const [key, vals] = pair.split(":");
+    if (key && vals) {
+      const validKeys = ["category", "brand", "skin_type", "skin_concern"];
+      if (validKeys.includes(key.trim())) {
+        (filters as any)[key.trim()] = vals.split("|").filter(Boolean);
+      }
+    }
+  });
+  return filters;
+}
+
+const filters = parseFilters(filtersParam);
+
+// ── Load data ──
 let categories: Category[] = [];
 let brands: Brand[] = [];
 let concerns: SkinConcern[] = [];
 let types: SkinType[] = [];
-let initialProducts: Product[] = [];
-let initialTotal = 0;
-let initialTotalPages = 1;
+let products: Product[] = [];
+let totalPages = 1;
+let total = 0;
 
 try {
-  const homeData = await api.getHomeContent();
+  const [homeData, productsData] = await Promise.all([
+    api.getHomeContent(),
+    api.getAllProducts(page, PAGE_SIZE, filters),
+  ]);
   categories = homeData.categories || [];
   brands = homeData.brands || [];
   concerns = homeData.concerns || [];
   types = homeData.types || [];
 
-  const productsData = await api.getAllProducts(1, 12);
-  initialProducts = productsData.result || [];
-  initialTotal = productsData.total || 0;
-  initialTotalPages = productsData.totalPages || 1;
+  products = productsData.result || [];
+  total = productsData.total || 0;
+  totalPages = productsData.totalPages || 1;
 } catch (error) {
-  console.error("Failed to load products/listing static content:", error);
+  console.error("Failed to load products listing:", error);
 }
+
+const allFilterCategories = [
+  { key: "category", label: "Category", items: categories.map(c => ({ value: c.slug, label: c.name })) },
+  { key: "brand", label: "Brand", items: brands.map(b => ({ value: b.slug, label: b.name })) },
+  { key: "skin_type", label: "Skin Type", items: types.map(t => ({ value: t.slug, label: t.name })) },
+  { key: "skin_concern", label: "Concern", items: concerns.map(c => ({ value: c.slug, label: c.name })) },
+];
+
+const startIdx = total > 0 ? (page - 1) * PAGE_SIZE + 1 : 0;
+const endIdx = Math.min(page * PAGE_SIZE, total);
+
+// Count active filters for badge
+const activeFilterCount = Object.values(filters).reduce((sum, arr) => sum + (arr?.length || 0), 0);
 ---
 
 <BaseLayout
@@ -42,430 +81,222 @@ try {
         <span class="text-stone">&bull;</span>
         <span class="text-ink font-semibold">All Products</span>
       </div>
-
       <span class="font-sans text-[12px] font-bold tracking-[2.5px] uppercase text-primary leading-none">SHOP RANGE</span>
       <h1 class="font-serif text-[34px] md:text-[44px] lg:text-[48px] font-bold text-ink leading-tight m-0">Skincare Collection</h1>
-      <p class="font-sans text-sm md:text-base text-mute m-0 mt-2  leading-relaxed" id="total-count-label">
-        Showing {initialProducts.length} of {initialTotal} products
+      <p class="font-sans text-sm md:text-base text-mute m-0 mt-2 leading-relaxed">
+        {total > 0
+          ? <>Showing {startIdx}&ndash;{endIdx} of {total} products</>
+          : <>0 products</>
+        }
       </p>
+    </div>
+
+    {/* Mobile Filter Bar */}
+    <div class="flex items-center justify-between border-b border-hairline pb-3 mb-6 lg:hidden">
+      <button class="inline-flex items-center gap-2 border border-hairline px-4 py-2 font-sans text-xs font-bold uppercase tracking-[0.5px] cursor-pointer hover:border-ink transition-colors" id="mobile-filter-toggle" type="button">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+        </svg>
+        <span>Filters</span>
+        {activeFilterCount > 0 && (
+          <span class="inline-flex bg-primary text-on-primary text-[10px] font-bold w-5 h-5 items-center justify-center rounded-full" id="active-filter-count">{activeFilterCount}</span>
+        )}
+      </button>
+      <span class="font-sans text-[13px] text-mute">{total} products</span>
     </div>
 
     {/* Layout */}
     <div class="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-8 items-start">
-      {/* Sidebar Filters */}
-      <aside
-        class="bg-canvas border border-hairline p-4 flex flex-col gap-5 max-lg:fixed max-lg:top-0 max-lg:left-0 max-lg:w-[300px] max-lg:h-full max-lg:z-[1200] max-lg:shadow-xl max-lg:-translate-x-full max-lg:transition-transform max-lg:duration-300 data-[open]:max-lg:translate-x-0"
-        id="sidebar-filter-panel"
-      >
-        {/* Mobile Header */}
-        <div class="hidden max-lg:flex items-center justify-between border-b border-hairline pb-3">
-          <h3 class="font-serif text-xl font-bold m-0">Filters</h3>
-          <button class="text-2xl text-mute" id="close-filters-btn">&times;</button>
-        </div>
 
-        {/* Category Filter */}
-        <div class="border-b border-hairline-soft pb-4 last:border-b-0 last:pb-0">
-          <h3 class="font-sans text-[11px] font-bold tracking-[2px] uppercase text-ink mb-2 m-0">Category</h3>
-          <div class="flex flex-col gap-1.5 max-h-[200px] overflow-y-auto pr-1">
-            {categories.map(cat => (
-              <label class="flex items-center gap-2 cursor-pointer font-sans text-[14px] text-body">
-                <input type="checkbox" name="category" value={cat.slug} class="w-4 h-4 border border-stone rounded-none cursor-pointer accent-primary filter-checkbox" />
-                <span class="select-none">{cat.name}</span>
-              </label>
-            ))}
+      {/* ── Desktop Sidebar Filters ── */}
+      <aside class="bg-canvas border border-hairline p-4 flex flex-col gap-5 lg:block" id="desktop-filter-panel">
+        {allFilterCategories.map(section => (
+          <div class="border-b border-hairline-soft pb-4 last:border-b-0 last:pb-0">
+            <h3 class="font-sans text-[11px] font-bold tracking-[2px] uppercase text-ink mb-2 m-0">{section.label}</h3>
+            <div class="flex flex-col gap-1.5 max-h-[200px] overflow-y-auto pr-1">
+              {section.items.map(item => (
+                <label class="flex items-center gap-2 cursor-pointer font-sans text-[14px] text-body">
+                  <input
+                    type="checkbox"
+                    name={section.key}
+                    value={item.value}
+                    class="w-4 h-4 border border-stone rounded-none cursor-pointer accent-primary filter-checkbox"
+                    data-group={section.key}
+                    checked={filters[section.key as keyof ProductFilter]?.includes(item.value)}
+                  />
+                  <span class="select-none">{item.label}</span>
+                </label>
+              ))}
+            </div>
           </div>
-        </div>
-
-        {/* Skin Type Filter */}
-        <div class="border-b border-hairline-soft pb-4 last:border-b-0 last:pb-0">
-          <h3 class="font-sans text-[11px] font-bold tracking-[2px] uppercase text-ink mb-2 m-0">Skin Type</h3>
-          <div class="flex flex-col gap-1.5 max-h-[200px] overflow-y-auto pr-1">
-            {types.map(tp => (
-              <label class="flex items-center gap-2 cursor-pointer font-sans text-[14px] text-body">
-                <input type="checkbox" name="skin_type" value={tp.slug} class="w-4 h-4 border border-stone rounded-none cursor-pointer accent-primary filter-checkbox" />
-                <span class="select-none">{tp.name}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Concern Filter */}
-        <div class="border-b border-hairline-soft pb-4 last:border-b-0 last:pb-0">
-          <h3 class="font-sans text-[11px] font-bold tracking-[2px] uppercase text-ink mb-2 m-0">Concern</h3>
-          <div class="flex flex-col gap-1.5 max-h-[200px] overflow-y-auto pr-1">
-            {concerns.map(con => (
-              <label class="flex items-center gap-2 cursor-pointer font-sans text-[14px] text-body">
-                <input type="checkbox" name="skin_concern" value={con.slug} class="w-4 h-4 border border-stone rounded-none cursor-pointer accent-primary filter-checkbox" />
-                <span class="select-none">{con.name}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Brand Filter */}
-        <div class="border-b border-hairline-soft pb-4 last:border-b-0 last:pb-0">
-          <h3 class="font-sans text-[11px] font-bold tracking-[2px] uppercase text-ink mb-2 m-0">Brand</h3>
-          <div class="flex flex-col gap-1.5 max-h-[200px] overflow-y-auto pr-1">
-            {brands.map(br => (
-              <label class="flex items-center gap-2 cursor-pointer font-sans text-[14px] text-body">
-                <input type="checkbox" name="brand" value={br.slug} class="w-4 h-4 border border-stone rounded-none cursor-pointer accent-primary filter-checkbox" />
-                <span class="select-none">{br.name}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Clear All */}
-        <button
-          class="w-full font-sans text-[11px] font-bold tracking-[1px] uppercase text-mute border border-hairline py-2 hover:text-primary hover:border-primary transition-colors duration-150"
-          id="clear-filters-btn"
-        >
+        ))}
+        <a href="/products" class="w-full text-center font-sans text-[11px] font-bold tracking-[1px] uppercase text-mute border border-hairline py-2 hover:text-primary hover:border-primary transition-colors duration-150 no-underline block">
           Clear All
-        </button>
+        </a>
       </aside>
 
-      {/* Products Section */}
-      <div class="flex flex-col gap-8">
-        {/* Mobile Filter Bar */}
-        <div class="hidden max-lg:flex items-center justify-between border-b border-hairline pb-3">
-          <button class="inline-flex items-center gap-2 border border-hairline px-4 py-2 font-sans text-xs font-bold uppercase tracking-[0.5px]" id="mobile-filter-toggle">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-            </svg>
-            <span>Filters</span>
+      {/* ── Mobile Slide-Out Filter Panel ── */}
+      <div id="mobile-filter-scrim" class="fixed inset-0 bg-ink/30 z-[1200] opacity-0 pointer-events-none transition-opacity duration-200"></div>
+      <aside
+        class="fixed top-0 left-0 w-[300px] max-w-[85vw] h-full bg-canvas z-[1201] shadow-xl flex flex-col transition-transform duration-300"
+        id="mobile-filter-panel"
+      >
+        <div class="h-[60px] px-5 flex items-center justify-between border-b border-hairline shrink-0">
+          <h3 class="font-sans text-[14px] font-bold text-ink m-0">Filters</h3>
+          <button class="w-10 h-10 flex items-center justify-center text-mute hover:text-ink transition-colors cursor-pointer" id="mobile-filter-close" type="button" aria-label="Close filters">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
-          <span class="font-sans text-[13px] text-mute" id="mobile-count-label">{initialTotal} products</span>
         </div>
-
-        {/* Shimmer Loader */}
-        <div class="hidden grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-1 sm:gap-2" id="plp-shimmer">
-          {[1,2,3,4,5,6,7,8,9,10].map(() => (
-            <div class="h-[380px] bg-gradient-to-r from-surface-soft via-secondary-bg to-surface-soft bg-[length:200%_100%] animate-[shimmer_1.5s_infinite]" />
+        <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-5">
+          {allFilterCategories.map(section => (
+            <div class="border-b border-hairline-soft pb-4 last:border-b-0 last:pb-0">
+              <h3 class="font-sans text-[11px] font-bold tracking-[2px] uppercase text-ink mb-2 m-0">{section.label}</h3>
+              <div class="flex flex-col gap-1.5">
+                {section.items.map(item => (
+                  <label class="flex items-center gap-2 cursor-pointer font-sans text-[14px] text-body">
+                    <input
+                      type="checkbox"
+                      name={section.key}
+                      value={item.value}
+                      class="w-4 h-4 border border-stone rounded-none cursor-pointer accent-primary filter-checkbox"
+                      data-group={section.key}
+                      checked={filters[section.key as keyof ProductFilter]?.includes(item.value)}
+                    />
+                    <span class="select-none">{item.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
+        <div class="shrink-0 border-t border-hairline p-4 flex flex-col gap-2 bg-canvas">
+          <button class="w-full bg-primary text-on-primary font-sans text-[13px] font-bold tracking-[1px] uppercase h-11 rounded-none cursor-pointer transition-colors hover:bg-primary-pressed" id="mobile-filter-apply" type="button">Apply Filters</button>
+          <a href="/products" class="w-full bg-transparent text-mute border border-hairline font-sans text-[11px] font-bold tracking-[1px] uppercase h-9 rounded-none cursor-pointer hover:text-primary hover:border-primary transition-colors text-center no-underline block">Clear All</a>
+        </div>
+      </aside>
 
+      {/* ── Products Section ── */}
+      <div class="flex flex-col gap-8">
         {/* Empty State */}
-        <div class="hidden text-center py-8 font-sans text-mute border border-dashed border-hairline" id="plp-empty">
-          <p class="m-0">No products match your active filters. Try clearing some selections.</p>
-        </div>
+        {products.length === 0 ? (
+          <div class="flex flex-col items-center justify-center py-20 text-center gap-6 border border-dashed border-hairline">
+            <div class="text-stone">
+              <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </div>
+            <div class="flex flex-col gap-2 max-w-[400px]">
+              <h2 class="font-serif text-heading-xl text-ink font-bold m-0">No Products Found</h2>
+              <p class="font-sans text-[15px] text-mute leading-relaxed m-0">No products match your active filters. Try clearing some selections.</p>
+            </div>
+            <a href="/products" class="inline-flex items-center justify-center bg-primary text-on-primary font-sans text-[13px] font-bold tracking-[1.2px] uppercase h-12 px-8 rounded-none no-underline transition-colors duration-150 hover:bg-primary-pressed">Clear Filters</a>
+          </div>
+        ) : (
+          <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-1 sm:gap-2">
+            {products.map(prod => (
+              <ProductCard product={prod} />
+            ))}
+          </div>
+        )}
 
-        {/* Products Grid */}
-        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-1 sm:gap-2" id="plp-products-grid">
-          {initialProducts.map(prod => (
-            <ProductCard product={prod} />
-          ))}
-        </div>
-
-        {/* Pagination — populated by the client script below. The wrapper is rendered
-            empty so the JS can build button-style pagination that intercepts clicks
-            and uses fetchFilteredProducts() instead of a full page reload. */}
-        <div id="plp-pagination-wrapper" class="flex items-center justify-center border-t border-hairline pt-6 mt-4"></div>
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div class="flex items-center justify-center border-t border-hairline pt-6 mt-4">
+            <Pagination currentPage={page} totalPages={totalPages} />
+          </div>
+        )}
       </div>
     </div>
   </div>
 </BaseLayout>
 
-<script>
-  function initProductListing() {
-    const filterPanel = document.getElementById('sidebar-filter-panel');
-    const mobileToggle = document.getElementById('mobile-filter-toggle');
-    const mobileClose = document.getElementById('close-filters-btn');
-    
-    const checkboxes = document.querySelectorAll<HTMLInputElement>('.filter-checkbox');
-    const clearBtn = document.getElementById('clear-filters-btn');
-    
-    const productsGrid = document.getElementById('plp-products-grid');
-    const plpShimmer = document.getElementById('plp-shimmer');
-    const plpEmpty = document.getElementById('plp-empty');
-    
-    const totalLabel = document.getElementById('total-count-label');
-    const mobileTotalLabel = document.getElementById('mobile-count-label');
+<script is:inline>
+(function () {
+  function initFilters() {
+    var desktopFilterPanel = document.getElementById("desktop-filter-panel");
+    var mobileFilterPanel = document.getElementById("mobile-filter-panel");
+    var mobileFilterScrim = document.getElementById("mobile-filter-scrim");
+    var mobileToggle = document.getElementById("mobile-filter-toggle");
+    var mobileClose = document.getElementById("mobile-filter-close");
+    var mobileApply = document.getElementById("mobile-filter-apply");
 
-    const paginationWrapper = document.getElementById('plp-pagination-wrapper');
-
-    let currentPage = 1;
-    let totalPages = 1;
-
-    function formatBDT(val: number) {
-      return '৳' + val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    function buildFiltersString() {
+      var groups = {};
+      document.querySelectorAll(".filter-checkbox:checked").forEach(function (cb) {
+        var key = cb.getAttribute("data-group") || cb.name;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(cb.value);
+      });
+      return Object.keys(groups)
+        .map(function (k) { return k + ":" + groups[k].join("|"); })
+        .join(",");
     }
 
-    // Mirror the current page in the URL bar so /products?page=3 is shareable
-    // and browser back/forward moves between pages. Only pushes if the URL
-    // would actually change.
-    function syncUrl(page: number) {
-      if (typeof window === "undefined") return;
-      const url = new URL(window.location.href);
-      if (page <= 1) {
-        if (url.searchParams.has("page")) {
-          url.searchParams.delete("page");
-          window.history.pushState({}, "", url);
-        }
-      } else {
-        if (url.searchParams.get("page") !== String(page)) {
-          url.searchParams.set("page", String(page));
-          window.history.pushState({}, "", url);
-        }
+    function navigateWithFilters() {
+      var filtersStr = buildFiltersString();
+      var url = new URL(window.location.origin + "/products");
+      if (filtersStr) url.searchParams.set("filters", filtersStr);
+      window.location.href = url.toString();
+    }
+
+    // ── Mobile filter panel ──
+    function openMobileFilters() {
+      if (!mobileFilterPanel || !mobileFilterScrim) return;
+      mobileFilterPanel.style.transform = "translateX(0)";
+      mobileFilterScrim.style.opacity = "1";
+      mobileFilterScrim.style.pointerEvents = "auto";
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeMobileFilters() {
+      if (!mobileFilterPanel || !mobileFilterScrim) return;
+      mobileFilterPanel.style.transform = "translateX(-100%)";
+      mobileFilterScrim.style.opacity = "0";
+      mobileFilterScrim.style.pointerEvents = "none";
+      document.body.style.overflow = "";
+    }
+
+    if (mobileToggle) mobileToggle.addEventListener("click", function (e) {
+      e.preventDefault();
+      openMobileFilters();
+    });
+    if (mobileClose) mobileClose.addEventListener("click", function (e) {
+      e.preventDefault();
+      closeMobileFilters();
+    });
+    if (mobileFilterScrim) mobileFilterScrim.addEventListener("click", closeMobileFilters);
+
+    if (mobileApply) mobileApply.addEventListener("click", function (e) {
+      e.preventDefault();
+      // Sync mobile checkboxes to desktop
+      if (mobileFilterPanel && desktopFilterPanel) {
+        mobileFilterPanel.querySelectorAll(".filter-checkbox").forEach(function (srcCb) {
+          var targetCb = desktopFilterPanel.querySelector('.filter-checkbox[name="' + srcCb.name + '"][value="' + srcCb.value + '"]');
+          if (targetCb) targetCb.checked = srcCb.checked;
+        });
       }
-    }
-
-    // React to browser back/forward — re-fetch the page indicated by the URL.
-    window.addEventListener("popstate", () => {
-      const url = new URL(window.location.href);
-      const p = Math.max(1, parseInt(url.searchParams.get("page") || "1"));
-      currentPage = p;
-      fetchFilteredProducts(p);
+      closeMobileFilters();
+      navigateWithFilters();
     });
 
-    function renderPagination(cur: number, total: number) {
-      if (!paginationWrapper) return;
-      if (total <= 1) { paginationWrapper.classList.add('hidden'); return; }
-      paginationWrapper.classList.remove('hidden');
-
-      function buildPages(c: number, t: number): (number | "...")[] {
-        if (t <= 7) return Array.from({ length: t }, (_, i) => i + 1);
-        const p: (number | "...")[] = [1];
-        if (c > 3) p.push("...");
-        for (let i = Math.max(2, c - 1); i <= Math.min(t - 1, c + 1); i++) p.push(i);
-        if (c < t - 2) p.push("...");
-        p.push(t);
-        return p;
-      }
-
-      const pages = buildPages(cur, total);
-      let html = '<nav aria-label="Pagination" class="pgn">';
-
-      // Prev
-      if (cur > 1) {
-        html += '<button class="pgn-btn pgn-nav" data-pgn="prev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg><span class="pgn-nav-label">Prev</span></button>';
-      } else {
-        html += '<button class="pgn-btn pgn-nav pgn-disabled" disabled><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg><span class="pgn-nav-label">Prev</span></button>';
-      }
-
-      // Numbers
-      for (const p of pages) {
-        if (p === "...") {
-          html += '<span class="pgn-ellipsis" aria-hidden="true">&hellip;</span>';
-        } else if (p === cur) {
-          html += '<span class="pgn-btn pgn-num pgn-active" aria-current="page">' + p + '</span>';
-        } else {
-          html += '<button class="pgn-btn pgn-num" data-pgn="page" data-page="' + p + '">' + p + '</button>';
-        }
-      }
-
-      // Next
-      if (cur < total) {
-        html += '<button class="pgn-btn pgn-nav" data-pgn="next"><span class="pgn-nav-label">Next</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>';
-      } else {
-        html += '<button class="pgn-btn pgn-nav pgn-disabled" disabled><span class="pgn-nav-label">Next</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>';
-      }
-
-      html += '</nav>';
-      paginationWrapper.innerHTML = html;
-
-      // Attach click handlers
-      paginationWrapper.querySelectorAll('[data-pgn]').forEach((btn) => {
-        btn.addEventListener('click', (e) => {
-          e.preventDefault();
-          const target = e.currentTarget as HTMLElement;
-          const action = target.getAttribute('data-pgn');
-          if (action === 'prev' && currentPage > 1) {
-            currentPage--;
-            fetchFilteredProducts(currentPage);
-          } else if (action === 'next' && currentPage < totalPages) {
-            currentPage++;
-            fetchFilteredProducts(currentPage);
-          } else if (action === 'page') {
-            const pg = parseInt(target.getAttribute('data-page') || '1');
-            if (pg !== currentPage) {
-              currentPage = pg;
-              fetchFilteredProducts(currentPage);
-            }
-          }
+    // Desktop filter checkbox change -> navigate
+    if (desktopFilterPanel) {
+      desktopFilterPanel.querySelectorAll(".filter-checkbox").forEach(function (cb) {
+        cb.addEventListener("change", function () {
+          navigateWithFilters();
         });
       });
     }
-
-    mobileToggle?.addEventListener('click', () => {
-      filterPanel?.setAttribute('data-open', '');
-      const scrim = document.getElementById('nav-scrim-layer');
-      if (scrim) {
-        scrim.classList.add('open');
-        scrim.addEventListener('click', closeMobileFilters);
-      }
-    });
-
-    function closeMobileFilters() {
-      filterPanel?.removeAttribute('data-open');
-      const scrim = document.getElementById('nav-scrim-layer');
-      if (scrim) {
-        scrim.classList.remove('open');
-        scrim.removeEventListener('click', closeMobileFilters);
-      }
-    }
-
-    mobileClose?.addEventListener('click', closeMobileFilters);
-
-    const urlParams = new URLSearchParams(window.location.search);
-    let hasUrlFilters = false;
-
-    checkboxes.forEach((cb) => {
-      const name = cb.name;
-      const val = cb.value;
-      if (urlParams.get(name) === val || urlParams.get(name.replace('_', '-')) === val) {
-        cb.checked = true;
-        hasUrlFilters = true;
-      }
-    });
-
-    // Read the initial page from the URL so deep links like /products?page=3 work.
-    const initialPage = Math.max(1, parseInt(urlParams.get("page") || "1"));
-    currentPage = initialPage;
-
-    if (hasUrlFilters || initialPage > 1) {
-      fetchFilteredProducts(initialPage);
-    } else {
-      renderPagination(1, {initialTotalPages});
-    }
-
-    checkboxes.forEach((cb) => {
-      cb.addEventListener('change', () => {
-        currentPage = 1;
-        fetchFilteredProducts(1);
-      });
-    });
-
-    clearBtn?.addEventListener('click', () => {
-      checkboxes.forEach((cb) => cb.checked = false);
-      currentPage = 1;
-      fetchFilteredProducts(1);
-    });
-
-    async function fetchFilteredProducts(page: number) {
-      if (plpShimmer) plpShimmer.style.display = 'grid';
-      if (productsGrid) productsGrid.style.display = 'none';
-      if (plpEmpty) plpEmpty.style.display = 'none';
-
-      const filterGroups: Record<string, string[]> = {};
-      
-      checkboxes.forEach((cb) => {
-        if (cb.checked) {
-          const name = cb.name;
-          const val = cb.value;
-          if (!filterGroups[name]) filterGroups[name] = [];
-          filterGroups[name].push(val);
-        }
-      });
-
-      const filtersString = Object.entries(filterGroups)
-        .map(([key, values]) => `${key}:${values.join('|')}`)
-        .join(',');
-
-      const queryParams = new URLSearchParams({
-        page: page.toString(),
-        pageSize: '20',
-      });
-      if (filtersString) queryParams.append('filters', filtersString);
-
-      try {
-        const res = await fetch(`https://backend.tokbd.com/api/products/all?${queryParams.toString()}`);
-        if (res.ok) {
-          const data = await res.json();
-          const items = data.result || [];
-          const total = data.total || 0;
-          totalPages = data.totalPages || 1;
-          currentPage = data.currentPage || 1;
-
-          if (plpShimmer) plpShimmer.style.display = 'none';
-
-          renderPagination(currentPage, totalPages);
-
-          // Reflect the current page in the URL so deep links and back/forward
-          // navigation work, without triggering a full page reload.
-          syncUrl(currentPage);
-
-          if (items.length === 0) {
-            if (plpEmpty) plpEmpty.style.display = 'block';
-            if (totalLabel) totalLabel.innerText = 'Showing 0 products';
-            if (mobileTotalLabel) mobileTotalLabel.innerText = '0 products';
-            return;
-          }
-
-          if (productsGrid) {
-            productsGrid.innerHTML = '';
-            
-            items.forEach((prod: any) => {
-              const currentPrice = parseFloat(prod.price);
-              const originalPrice = parseFloat(prod.origin_price);
-              const onSale = originalPrice > currentPrice;
-              const discountPercent = onSale ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100) : 0;
-              const imgUrl = prod.card_photo || prod.img || "";
-
-              const card = document.createElement('div');
-              card.className = 'group flex flex-col bg-white border border-hairline-soft rounded-none';
-              card.setAttribute('data-id', prod.id);
-              card.innerHTML = `
-                <a href="/products/${prod.slug}" class="block relative" aria-label="View details for ${prod.name}">
-                  <div class="relative w-full aspect-square sm:aspect-[3/4] bg-surface-card overflow-hidden">
-                    <img src="${imgUrl}" alt="${prod.name}" class="absolute inset-0 w-full h-full object-cover" loading="lazy" />
-                    <div class="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
-                      ${onSale ? `<span class="inline-flex items-center font-sans text-[10px] sm:text-[12px] font-bold tracking-[1.5px] uppercase px-2 py-1 sm:px-3 sm:py-1.5 leading-none rounded-none bg-ink text-on-dark">-${discountPercent}%</span>` : ''}
-                      ${!prod.stock ? `<span class="inline-flex items-center font-sans text-[11px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none rounded-none bg-mute text-on-primary">SOLD OUT</span>` : ''}
-                      ${prod.origin_country === 'thailand' ? `<span class="inline-flex items-center font-sans text-[11px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none rounded-none bg-accent-gold text-on-dark">THAI</span>` : ''}
-                    </div>
-                  </div>
-                </a>
-                <div class="flex flex-col flex-1 p-3.5 sm:p-5 gap-3">
-                  <span class="font-sans text-[12px] md:text-[13px] font-bold tracking-[2px] uppercase text-mute">${prod.brand}</span>
-                  <a href="/products/${prod.slug}" class="no-underline text-ink block flex-1">
-                    <h3 class="font-sans text-[13px] md:text-[15px] font-semibold leading-[1.4] line-clamp-2 text-ink m-0">${prod.name}</h3>
-                  </a>
-                  <div class="flex items-baseline gap-2 mt-1">
-                    <span class="font-sans text-[20px] md:text-[22px] font-bold text-ink leading-none">${formatBDT(currentPrice)}</span>
-                    ${onSale ? `<span class="font-sans text-[14px] md:text-[15px] text-ash line-through">${formatBDT(originalPrice)}</span>` : ''}
-                  </div>
-                  <div class="mt-auto pt-4">
-                    ${prod.stock ? `
-                      <button class="flex items-center justify-center gap-1.5 sm:gap-2 w-full h-14 sm:h-12 px-2 sm:px-6 bg-primary text-on-primary font-sans text-[11px] sm:text-[13px] font-bold tracking-[0.5px] sm:tracking-[1.2px] uppercase rounded-none cursor-pointer hover:bg-primary-pressed active:bg-primary-pressed transition-colors duration-150 whitespace-nowrap" data-add-to-cart data-id="${prod.id}" data-name="${prod.name}" data-price="${prod.price}" data-img="${imgUrl}" data-slug="${prod.slug}">
-                        <svg class="hidden sm:block" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path>
-                          <line x1="3" y1="6" x2="21" y2="6"></line>
-                          <path d="M16 10a4 4 0 01-8 0"></path>
-                        </svg>
-                        <span>Add to Bag</span>
-                      </button>
-                    ` : `
-                      <span class="flex items-center justify-center w-full h-14 sm:h-12 px-2 border border-hairline-soft font-sans text-[11px] sm:text-[13px] font-semibold text-mute uppercase rounded-none bg-surface-soft whitespace-nowrap">Out of Stock</span>
-                    `}
-                  </div>
-                </div>
-              `;
-              productsGrid.appendChild(card);
-            });
-
-            productsGrid.style.display = 'grid';
-          }
-
-          const PAGE_SIZE = 20;
-          const endCount = Math.min(currentPage * PAGE_SIZE, total);
-          const startCount = (currentPage - 1) * PAGE_SIZE + 1;
-
-          if (totalLabel) totalLabel.innerText = `Showing ${startCount}-${endCount} of ${total} products`;
-          if (mobileTotalLabel) mobileTotalLabel.innerText = `${total} products`;
-
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        }
-      } catch (err) {
-        console.error('Error fetching filtered list:', err);
-        if (plpShimmer) plpShimmer.style.display = 'none';
-        if (plpEmpty) plpEmpty.style.display = 'block';
-      }
-    }
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initProductListing);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initFilters);
   } else {
-    initProductListing();
+    initFilters();
   }
+})();
 </script>
+
+<style is:inline>
+  #mobile-filter-panel {
+    transform: translateX(-100%);
+  }
+</style>
