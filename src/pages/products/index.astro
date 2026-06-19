@@ -109,7 +109,7 @@ const activeFilterCount = Object.values(filters).reduce((sum, arr) => sum + (arr
     <div class="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-8 items-start">
 
       {/* ── Desktop Sidebar Filters ── */}
-      <aside class="bg-canvas border border-hairline p-4 flex flex-col gap-5 lg:block" id="desktop-filter-panel">
+      <aside class="bg-canvas border border-hairline p-4 flex-col gap-5 hidden lg:flex" id="desktop-filter-panel">
         {allFilterCategories.map(section => (
           <div class="border-b border-hairline-soft pb-4 last:border-b-0 last:pb-0">
             <h3 class="font-sans text-[11px] font-bold tracking-[2px] uppercase text-ink mb-2 m-0">{section.label}</h3>
@@ -240,7 +240,7 @@ const activeFilterCount = Object.values(filters).reduce((sum, arr) => sum + (arr
     // ── Mobile filter panel ──
     function openMobileFilters() {
       if (!mobileFilterPanel || !mobileFilterScrim) return;
-      mobileFilterPanel.style.transform = "translateX(0)";
+      mobileFilterPanel.classList.add("open");
       mobileFilterScrim.style.opacity = "1";
       mobileFilterScrim.style.pointerEvents = "auto";
       document.body.style.overflow = "hidden";
@@ -248,7 +248,7 @@ const activeFilterCount = Object.values(filters).reduce((sum, arr) => sum + (arr
 
     function closeMobileFilters() {
       if (!mobileFilterPanel || !mobileFilterScrim) return;
-      mobileFilterPanel.style.transform = "translateX(-100%)";
+      mobileFilterPanel.classList.remove("open");
       mobileFilterScrim.style.opacity = "0";
       mobileFilterScrim.style.pointerEvents = "none";
       document.body.style.overflow = "";
@@ -291,5 +291,8 @@ const activeFilterCount = Object.values(filters).reduce((sum, arr) => sum + (arr
 <style is:inline>
   #mobile-filter-panel {
     transform: translateX(-100%);
+  }
+  #mobile-filter-panel.open {
+    transform: translateX(0);
   }
 </style>

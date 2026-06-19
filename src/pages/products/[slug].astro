@@ -5,6 +5,7 @@ import Breadcrumb from "../../components/ui/Breadcrumb.astro";
 import ProductCard from "../../components/ui/ProductCard.astro";
 import StarRating from "../../components/ui/StarRating.astro";
 import { AddToCartButton, BuyNowButton } from "../../components/ui/buttons";
+import { MessengerButton, WhatsAppButton } from "../../components/ui/messenger";
 import { ProductSchema, BreadcrumbSchema } from "../../components/seo";
 import { formatPrice, safeParseArray } from "../../lib/utils";
 import { api } from "../../lib/api";
@@ -12,7 +13,6 @@ import type { Product } from "../../lib/api";
 
 const { slug } = Astro.params;
 
-// 2. Fetch specific product content
 let product: Product | null = null;
 let relatedProducts: Product[] = [];
 let brandProducts: Product[] = [];
@@ -20,14 +20,11 @@ let brandProducts: Product[] = [];
 try {
   product = await api.getProductBySlug(slug);
 
-  // Related products: prefer same category, then same concern, then random fallback.
   if (product?.category_slug) {
     try {
       const cat = await api.getProductsByCategory(product.category_slug, 1, 8);
       const filtered = (cat.result || []).filter((p) => p.id !== product!.id).slice(0, 6);
-      if (filtered.length > 0) {
-        relatedProducts = filtered;
-      }
+      if (filtered.length > 0) relatedProducts = filtered;
     } catch (e) {
       console.warn("Category-based related lookup failed, falling back to random:", e);
     }
@@ -53,15 +50,16 @@ const originalPrice = parseFloat(product.origin_price);
 const onSale = originalPrice > currentPrice;
 const discountPercent = onSale ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100) : 0;
 
-// Setup image gallery sources
 const mainImg = product.img || product.card_photo;
 const photosList = safeParseArray(product.details?.photos);
 const galleryImages = [mainImg, ...photosList].filter(Boolean);
 
-// Parse details arrays safely
 const benefits = safeParseArray(product.details?.benefits);
 const howToUse = safeParseArray(product.details?.how_to_use);
 const sizes = safeParseArray(product.details?.sizes);
+
+const originCountry = product.origin_country || "Thailand";
+const deliveryText = "Inside Dhaka: 1-2 Days \u2022 Outside Dhaka: 3-5 Days";
 ---
 
 <BaseLayout
@@ -71,7 +69,7 @@ const sizes = safeParseArray(product.details?.sizes);
   type="product"
 >
   <Fragment slot="head">
-    <ProductSchema product={product} rating={{ value: 4.5, count: 14 }} />
+    <ProductSchema product={product} rating={{ value: 4.5, count: 0 }} />
     <BreadcrumbSchema
       items={[
         { label: "Home", href: "/" },
@@ -81,26 +79,28 @@ const sizes = safeParseArray(product.details?.sizes);
       ]}
     />
   </Fragment>
-  <div class="max-w-[1536px] mx-auto px-1 md:px-6 pt-1 pb-16 md:pb-24">
+
+  <div class="max-w-[1536px] mx-auto px-[3%] md:px-6 pt-4 pb-16 md:pb-24">
     {/* Breadcrumbs */}
-    <Breadcrumb
-      items={[
-        { label: "Home", href: "/" },
-        { label: product.brand, href: `/brands/${product.brand_slug}` },
-        { label: product.category, href: `/categories/${product.category_slug}` },
-        { label: product.name },
-      ]}
-    />
+    <div class="mt-4 mb-6">
+      <Breadcrumb
+        items={[
+          { label: "Home", href: "/" },
+          { label: product.brand, href: `/brands/${product.brand_slug}` },
+          { label: product.category, href: `/categories/${product.category_slug}` },
+          { label: product.name },
+        ]}
+      />
+    </div>
 
     {/* ═══ PDP 2-column layout ═══ */}
-    <div class="grid grid-cols-1 lg:grid-cols-[42fr_58fr] gap-8 lg:gap-14 items-start mb-16 md:mb-24 overflow-hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-[42fr_58fr] gap-8 lg:gap-14 items-start mb-12 md:mb-16 overflow-hidden">
 
       {/* ── Image Gallery Column ── */}
       <div class="flex flex-col gap-3 min-w-0">
         <div class="relative w-full pt-[80%] sm:pt-[90%] md:pt-[100%] bg-surface-card border border-hairline overflow-hidden">
           <img src={mainImg} alt={product.name} class="absolute inset-0 w-full h-full object-cover" id="pdp-main-image" />
 
-          {/* Badges */}
           <div class="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
             {onSale && (
               <span class="inline-flex items-center font-sans text-[10px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none bg-ink text-on-dark">
@@ -112,15 +112,9 @@ const sizes = safeParseArray(product.details?.sizes);
                 SOLD OUT
               </span>
             )}
-            {product.origin_country === "thailand" && (
-              <span class="inline-flex items-center font-sans text-[10px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none bg-primary text-on-primary">
-                100% THAI
-              </span>
-            )}
           </div>
         </div>
 
-        {/* Thumbnail strip */}
         {galleryImages.length > 1 && (
           <div class="flex gap-2 overflow-x-auto pb-1">
             {galleryImages.map((img, idx) => (
@@ -141,139 +135,180 @@ const sizes = safeParseArray(product.details?.sizes);
 
       {/* ── Info Column ── */}
       <div class="flex flex-col min-w-0">
-        {/* Brand + Category */}
-        <div class="flex items-center gap-1.5 mb-1.5 flex-wrap">
-          <a href={`/brands/${product.brand_slug}`} class="font-sans text-[11px] font-bold tracking-[2px] uppercase text-primary no-underline hover:text-primary-pressed transition-colors">{product.brand}</a>
-          <span class="text-stone text-[11px]">&bull;</span>
-          <a href={`/categories/${product.category_slug}`} class="font-sans text-[11px] font-bold tracking-[2px] uppercase text-mute no-underline hover:text-primary transition-colors">{product.category}</a>
+        {/* Brand / Category / Stock */}
+        <div class="flex items-center gap-2 mb-2 flex-wrap text-[12px] font-sans uppercase tracking-[0.5px]">
+          <a href={`/brands/${product.brand_slug}`} class="text-primary font-bold no-underline hover:text-primary-pressed transition-colors">{product.brand}</a>
+          <span class="text-stone">&bull;</span>
+          <a href={`/categories/${product.category_slug}`} class="text-mute font-semibold no-underline hover:text-primary transition-colors">{product.category}</a>
+          <span class="text-stone">&bull;</span>
+          <span class="flex items-center gap-1 font-semibold text-success-deep">
+            <span class={`w-1.5 h-1.5 rounded-full ${product.stock ? "bg-success-deep" : "bg-mute"}`}></span>
+            {product.stock ? "In Stock" : "Out of Stock"}
+          </span>
         </div>
 
         {/* Title */}
-        <h1 class="font-serif text-[28px] md:text-[36px] lg:text-[40px] font-bold text-ink leading-tight m-0 mb-2">{product.name}</h1>
+        <h1 class="font-serif text-[26px] md:text-[34px] lg:text-[40px] font-bold text-ink leading-tight m-0 mb-3">{product.name}</h1>
 
         {/* Ratings */}
-        <div class="flex items-center gap-2 mb-5 flex-wrap">
-          <StarRating rating={4.5} count={14} size={16} />
+        <div class="flex items-center gap-2 mb-4 flex-wrap">
+          <StarRating rating={4.5} count={0} size={16} />
           <span class="text-stone">&bull;</span>
-          <span class="font-sans text-[12px] text-mute uppercase tracking-[0.5px]">Imported from {product.origin_country}</span>
+          <span class="font-sans text-[12px] text-mute uppercase tracking-[0.5px]">Imported from {originCountry}</span>
         </div>
 
         {/* Pricing */}
-        <div class="border-t border-b border-hairline py-3 mb-5 flex items-baseline gap-4 flex-wrap">
-          <span class="font-sans text-[28px] md:text-[32px] font-bold text-ink leading-none">{formatPrice(product.price)}</span>
+        <div class="border-t border-b border-hairline py-3 mb-5 flex flex-wrap items-baseline gap-3">
+          <span class="font-sans text-[30px] md:text-[34px] font-bold text-ink leading-none">{formatPrice(product.price)}</span>
           {onSale && (
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="font-sans text-[18px] md:text-[20px] text-ash line-through">{formatPrice(product.origin_price)}</span>
-              <span class="font-sans text-[11px] font-bold text-success-deep bg-success-pale px-1.5 py-0.5 uppercase tracking-[0.5px]">Save {formatPrice(originalPrice - currentPrice)}</span>
+            <>
+              <span class="font-sans text-[16px] md:text-[18px] text-ash line-through">{formatPrice(product.origin_price)}</span>
+              <span class="font-sans text-[11px] font-bold text-white bg-primary px-2 py-0.5 rounded-none">{discountPercent}% OFF</span>
+            </>
+          )}
+        </div>
+
+        {/* Expiry + Sizes */}
+        <div class="grid grid-cols-2 gap-4 mb-5">
+          {product.expiry_date && (
+            <div>
+              <span class="block font-sans text-[11px] font-bold tracking-[1px] uppercase text-mute mb-1">Expiry Date</span>
+              <span class="font-sans text-[14px] font-semibold text-ink">{product.expiry_date}</span>
+            </div>
+          )}
+          {sizes.length > 0 && (
+            <div>
+              <span class="block font-sans text-[11px] font-bold tracking-[1px] uppercase text-mute mb-1">Available Sizes</span>
+              <div class="flex gap-1.5 flex-wrap">
+                {sizes.map((size) => (
+                  <button class="border border-stone px-3 py-1 font-sans text-[13px] text-ink bg-canvas hover:border-ink transition-colors cursor-pointer">
+                    {size}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
 
-        {/* Size / Variant Selector */}
-        {sizes.length > 0 && (
-          <div class="mb-5">
-            <h3 class="font-sans text-[12px] font-bold tracking-[1px] uppercase text-ink mb-2 m-0">Select Size</h3>
-            <div class="flex gap-1.5 flex-wrap">
-              {sizes.map((size, idx) => (
-                <button class:list={[
-                  "border font-sans text-[13px] px-4 py-2 bg-canvas cursor-pointer transition-colors",
-                  idx === 0 ? "border-ink bg-ink text-on-dark" : "border-stone text-ink hover:border-ink",
-                ]}>
-                  {size}
-                </button>
-              ))}
+        {/* Purchase Actions */}
+        {product.stock ? (
+          <div class="flex flex-col gap-3 mb-5">
+            {/* Quantity */}
+            <div class="flex items-center gap-3">
+              <span class="font-sans text-[12px] font-bold tracking-[1px] text-mute uppercase">Quantity</span>
+              <div class="flex items-center border border-stone h-10 bg-canvas">
+                <button class="w-9 h-full flex items-center justify-center font-bold text-[16px] cursor-pointer hover:bg-surface-soft transition-colors bg-transparent border-none" id="pdp-qty-dec" aria-label="Decrease quantity">-</button>
+                <span class="w-9 text-center font-sans text-[14px] font-bold" id="pdp-qty-val">1</span>
+                <button class="w-9 h-full flex items-center justify-center font-bold text-[16px] cursor-pointer hover:bg-surface-soft transition-colors bg-transparent border-none" id="pdp-qty-inc" aria-label="Increase quantity">+</button>
+              </div>
             </div>
+
+            {/* CTA Buttons */}
+            <div class="grid grid-cols-[1fr_1fr_auto] gap-2 w-full">
+              <AddToCartButton
+                id="pdp-add-to-bag-btn"
+                productId={product.id}
+                name={product.name}
+                price={currentPrice}
+                image={mainImg || ""}
+                slug={product.slug}
+                quantity={1}
+              />
+              <BuyNowButton
+                id="pdp-buy-now-btn"
+                productId={product.id}
+                name={product.name}
+                price={currentPrice}
+                image={mainImg || ""}
+                slug={product.slug}
+                quantity={1}
+              />
+              <button
+                id="pdp-wishlist-btn"
+                class="w-12 h-12 sm:h-auto flex items-center justify-center border border-hairline bg-canvas text-primary hover:bg-surface-blush transition-colors cursor-pointer"
+                aria-label="Add to wishlist"
+                data-product-id={product.id}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div class="bg-surface-card border border-hairline p-4 mb-5">
+            <h3 class="font-sans text-[14px] font-bold uppercase text-ink mb-1.5 m-0">Currently Sold Out</h3>
+            <p class="font-sans text-[13px] text-mute leading-relaxed m-0">We restock direct shipments from Bangkok every two weeks.</p>
           </div>
         )}
 
-        {/* Purchase Box */}
-        <div class="mb-8">
-          {product.stock ? (
-            <div class="flex flex-col gap-3">
-              {/* Quantity Section */}
-              <div class="flex items-center gap-3">
-                <span class="font-sans text-[12px] font-bold tracking-[1px] text-mute uppercase">Quantity</span>
-                <div class="flex items-center border border-stone h-10 bg-canvas">
-                  <button class="w-9 h-full flex items-center justify-center font-bold text-[16px] cursor-pointer hover:bg-surface-soft transition-colors bg-transparent border-none" id="pdp-qty-dec" aria-label="Decrease quantity">-</button>
-                  <span class="w-9 text-center font-sans text-[14px] font-bold" id="pdp-qty-val">1</span>
-                  <button class="w-9 h-full flex items-center justify-center font-bold text-[16px] cursor-pointer hover:bg-surface-soft transition-colors bg-transparent border-none" id="pdp-qty-inc" aria-label="Increase quantity">+</button>
-                </div>
-              </div>
-
-              {/* CTA Buttons Row */}
-              <div class="flex flex-col sm:flex-row gap-2 w-full h-auto min-h-[56px] sm:min-h-[52px]">
-                <AddToCartButton
-                  id="pdp-add-to-bag-btn"
-                  productId={product.id}
-                  name={product.name}
-                  price={currentPrice}
-                  image={mainImg || ""}
-                  slug={product.slug}
-                  quantity={1}
-                />
-                <BuyNowButton
-                  id="pdp-buy-now-btn"
-                  productId={product.id}
-                  name={product.name}
-                  price={currentPrice}
-                  image={mainImg || ""}
-                  slug={product.slug}
-                  quantity={1}
-                />
-              </div>
-            </div>
-          ) : (
-            <div class="bg-surface-card border border-hairline p-4">
-              <h3 class="font-sans text-[14px] font-bold uppercase text-ink mb-1.5 m-0">Currently Sold Out</h3>
-              <p class="font-sans text-[13px] text-mute leading-relaxed m-0">We restock direct shipments from Bangkok every two weeks.</p>
-            </div>
-          )}
+        {/* Messenger + WhatsApp */}
+        <div class="grid grid-cols-2 gap-2 mb-4">
+          <MessengerButton fullWidth={true} />
+          <WhatsAppButton fullWidth={true} />
         </div>
 
-        {/* Tabbed Information Panel */}
-        <div class="border-t border-hairline pt-4">
-          <div class="flex gap-3 border-b border-hairline mb-3 overflow-x-auto" role="tablist" style="scrollbar-width:none">
-            <button class="tab-btn font-sans text-[13px] font-bold tracking-[1px] uppercase text-mute bg-transparent border-none py-1.5 pb-2 cursor-pointer relative whitespace-nowrap transition-colors hover:text-ink active" data-tab="description" role="tab" aria-selected="true">Description</button>
-            {product.details?.key_ingredient && (
-              <button class="tab-btn font-sans text-[13px] font-bold tracking-[1px] uppercase text-mute bg-transparent border-none py-1.5 pb-2 cursor-pointer relative whitespace-nowrap transition-colors hover:text-ink" data-tab="ingredients" role="tab" aria-selected="false">Key Ingredients</button>
-            )}
-            {howToUse.length > 0 && (
-              <button class="tab-btn font-sans text-[13px] font-bold tracking-[1px] uppercase text-mute bg-transparent border-none py-1.5 pb-2 cursor-pointer relative whitespace-nowrap transition-colors hover:text-ink" data-tab="howtouse" role="tab" aria-selected="false">How To Use</button>
-            )}
-            {benefits.length > 0 && (
-              <button class="tab-btn font-sans text-[13px] font-bold tracking-[1px] uppercase text-mute bg-transparent border-none py-1.5 pb-2 cursor-pointer relative whitespace-nowrap transition-colors hover:text-ink" data-tab="benefits" role="tab" aria-selected="false">Key Benefits</button>
-            )}
-          </div>
-
-          <div class="min-h-[80px] pt-1">
-            <div class="tab-panel font-sans text-[14px] text-body leading-relaxed active" id="tab-description-content" role="tabpanel">
-              <p class="m-0">{product.details?.description || "Authentic skincare product imported directly from Thailand. Formulated with premium ingredients to support clear, glowing, and balanced skin."}</p>
-            </div>
-
-            {product.details?.key_ingredient && (
-              <div class="tab-panel font-sans text-[14px] text-body leading-relaxed" id="tab-ingredients-content" role="tabpanel">
-                <p class="m-0 tracking-[0.2px]">{product.details?.key_ingredient}</p>
-              </div>
-            )}
-
-            {howToUse.length > 0 && (
-              <div class="tab-panel font-sans text-[14px] text-body leading-relaxed" id="tab-howtouse-content" role="tabpanel">
-                <ol class="pl-4 m-0 flex flex-col gap-1.5">
-                  {howToUse.map(step => <li>{step}</li>)}
-                </ol>
-              </div>
-            )}
-
-            {benefits.length > 0 && (
-              <div class="tab-panel font-sans text-[14px] text-body leading-relaxed" id="tab-benefits-content" role="tabpanel">
-                <ul class="pl-4 m-0 flex flex-col gap-1.5">
-                  {benefits.map(benefit => <li>{benefit}</li>)}
-                </ul>
-              </div>
-            )}
-          </div>
+        {/* Delivery Timescale */}
+        <div class="flex items-center gap-2 bg-surface-soft border border-hairline-soft px-4 py-3 mb-6">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-mute shrink-0"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          <span class="font-sans text-[13px] text-ink font-medium">Delivery Timescale: <span class="text-mute">{deliveryText}</span></span>
         </div>
       </div>
+    </div>
+
+    {/* ═══ Information Accordion (bottom) ═══ */}
+    <div class="border-t border-hairline pt-4 mb-16 md:mb-24" id="pdp-accordion">
+      {/* Description */}
+      <div class="accordion-item border-b border-hairline-soft">
+        <button class="accordion-trigger w-full flex items-center justify-between py-3 font-sans text-[13px] font-bold tracking-[1px] uppercase text-ink bg-transparent border-none cursor-pointer text-left" data-accordion="description" aria-expanded="true">
+          <span>Description</span>
+          <svg class="accordion-icon transition-transform duration-200" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div class="accordion-content font-sans text-[14px] text-body leading-relaxed" id="acc-description">
+          <p class="m-0 pb-4">{product.details?.description || "Authentic skincare product imported directly from Thailand. Formulated with premium ingredients to support clear, glowing, and balanced skin."}</p>
+        </div>
+      </div>
+
+      {/* Key Ingredients */}
+      {product.details?.key_ingredient && (
+        <div class="accordion-item border-b border-hairline-soft">
+          <button class="accordion-trigger w-full flex items-center justify-between py-3 font-sans text-[13px] font-bold tracking-[1px] uppercase text-ink bg-transparent border-none cursor-pointer text-left" data-accordion="ingredients" aria-expanded="false">
+            <span>Key Ingredients</span>
+            <svg class="accordion-icon transition-transform duration-200" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="accordion-content font-sans text-[14px] text-body leading-relaxed hidden" id="acc-ingredients">
+            <p class="m-0 pb-4 tracking-[0.2px]">{product.details?.key_ingredient}</p>
+          </div>
+        </div>
+      )}
+
+      {/* How To Use */}
+      {howToUse.length > 0 && (
+        <div class="accordion-item border-b border-hairline-soft">
+          <button class="accordion-trigger w-full flex items-center justify-between py-3 font-sans text-[13px] font-bold tracking-[1px] uppercase text-ink bg-transparent border-none cursor-pointer text-left" data-accordion="howtouse" aria-expanded="false">
+            <span>How To Use</span>
+            <svg class="accordion-icon transition-transform duration-200" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="accordion-content font-sans text-[14px] text-body leading-relaxed hidden" id="acc-howtouse">
+            <ol class="pl-4 m-0 pb-4 flex flex-col gap-1.5">
+              {howToUse.map(step => <li>{step}</li>)}
+            </ol>
+          </div>
+        </div>
+      )}
+
+      {/* Key Benefits */}
+      {benefits.length > 0 && (
+        <div class="accordion-item border-b border-hairline-soft last:border-b-0">
+          <button class="accordion-trigger w-full flex items-center justify-between py-3 font-sans text-[13px] font-bold tracking-[1px] uppercase text-ink bg-transparent border-none cursor-pointer text-left" data-accordion="benefits" aria-expanded="false">
+            <span>Key Benefits</span>
+            <svg class="accordion-icon transition-transform duration-200" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="accordion-content font-sans text-[14px] text-body leading-relaxed hidden" id="acc-benefits">
+            <ul class="pl-4 m-0 pb-4 flex flex-col gap-1.5">
+              {benefits.map(benefit => <li>{benefit}</li>)}
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
 
     {/* ═══ Brand Products ═══ */}
@@ -303,34 +338,20 @@ const sizes = safeParseArray(product.details?.sizes);
 </BaseLayout>
 
 <style>
-  .tab-btn.active {
-    color: var(--color-ink, #1A0E14);
-  }
-  .tab-btn.active::after {
-    content: '';
-    position: absolute;
-    bottom: -1px;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background-color: var(--color-ink, #1A0E14);
-  }
-  .tab-panel {
-    display: none;
+  .accordion-content {
     animation: fadeIn 0.25s ease;
   }
-  .tab-panel.active {
-    display: block;
+  .accordion-trigger[aria-expanded="true"] .accordion-icon {
+    transform: rotate(180deg);
   }
   @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(4px); }
+    from { opacity: 0; transform: translateY(-4px); }
     to { opacity: 1; transform: translateY(0); }
   }
 </style>
 
 <script>
   function initProductPage() {
-    // 1. Gallery thumbnail selectors
     const mainImage = document.getElementById('pdp-main-image') as HTMLImageElement;
     const thumbs = document.querySelectorAll('[data-img-url]');
 
@@ -348,18 +369,16 @@ const sizes = safeParseArray(product.details?.sizes);
         target.style.outline = '1px solid var(--color-primary, #C8365A)';
 
         const newUrl = target.getAttribute('data-img-url');
-        if (newUrl && mainImage) {
-          mainImage.src = newUrl;
-        }
+        if (newUrl && mainImage) mainImage.src = newUrl;
       });
     });
 
-    // 2. Quantity selector
     const valSpan = document.getElementById('pdp-qty-val');
     const decBtn = document.getElementById('pdp-qty-dec');
     const incBtn = document.getElementById('pdp-qty-inc');
     const addBtn = document.getElementById('pdp-add-to-bag-btn');
     const buyBtn = document.getElementById('pdp-buy-now-btn');
+    const wishlistBtn = document.getElementById('pdp-wishlist-btn');
 
     let qty = 1;
 
@@ -382,26 +401,36 @@ const sizes = safeParseArray(product.details?.sizes);
       updateQtyButtons();
     });
 
-    // 3. Tab switcher logic
-    const tabBtns = document.querySelectorAll('.tab-btn');
-    const tabPanels = document.querySelectorAll('.tab-panel');
+    // Wishlist
+    wishlistBtn?.addEventListener('click', () => {
+      wishlistBtn.classList.toggle('bg-surface-blush');
+      wishlistBtn.classList.toggle('text-primary');
+      const svg = wishlistBtn.querySelector('svg');
+      if (svg) {
+        const isFilled = svg.getAttribute('fill') === 'currentColor';
+        svg.setAttribute('fill', isFilled ? 'none' : 'currentColor');
+      }
+    });
 
-    tabBtns.forEach((btn) => {
+    // Accordion - description open by default, others collapsed
+    const accordionBtns = document.querySelectorAll('.accordion-trigger');
+
+    accordionBtns.forEach((btn) => {
+      const targetId = 'acc-' + btn.getAttribute('data-accordion');
+      const content = document.getElementById(targetId);
+      if (!content) return;
+
+      // Only set initial state for non-description accordions
+      const isDescription = btn.getAttribute('data-accordion') === 'description';
+      if (!isDescription) {
+        btn.setAttribute('aria-expanded', 'false');
+        content.classList.add('hidden');
+      }
+
       btn.addEventListener('click', () => {
-        tabBtns.forEach((b) => {
-          b.classList.remove('active');
-          b.setAttribute('aria-selected', 'false');
-        });
-        tabPanels.forEach((p) => p.classList.remove('active'));
-
-        btn.classList.add('active');
-        btn.setAttribute('aria-selected', 'true');
-
-        const targetTab = btn.getAttribute('data-tab');
-        const targetPanel = document.getElementById(`tab-${targetTab}-content`);
-        if (targetPanel) {
-          targetPanel.classList.add('active');
-        }
+        const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!isExpanded));
+        content.classList.toggle('hidden');
       });
     });
   }

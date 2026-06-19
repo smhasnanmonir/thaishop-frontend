@@ -1,0 +1,32 @@
+---
+/**
+ * MessengerButton — Opens a Facebook Messenger chat.
+ */
+interface Props {
+  pageId?: string;
+  href?: string;
+  fullWidth?: boolean;
+}
+
+const {
+  pageId,
+  href = pageId ? `https://m.me/${pageId}` : "https://m.me/",
+  fullWidth = true,
+} = Astro.props;
+---
+
+<a
+  href={href}
+  target="_blank"
+  rel="noopener noreferrer"
+  class:list={[
+    "inline-flex items-center justify-center gap-2 h-12 px-5 bg-[#0084FF]/10 text-[#0084FF] border border-[#0084FF]/20 rounded-none font-sans text-[13px] font-bold tracking-[0.5px] uppercase no-underline transition-colors duration-200 hover:bg-[#0084FF] hover:text-white",
+    fullWidth ? "w-full" : "",
+  ]}
+  aria-label="Chat on Messenger"
+>
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M12 2C6.48 2 2 6.03 2 11C2 13.66 3.17 16.07 5.13 17.74V22L9.17 19.62C9.95 19.85 10.86 19.91 12 19.91C17.52 19.91 22 15.88 22 10.88C22 5.88 17.52 2 12 2ZM12.88 14.47L10.94 12.44L6.94 14.53L11.28 10.03L13.25 12.06L17.19 9.97L12.88 14.47Z"/>
+  </svg>
+  <span>Messenger</span>
+</a>
