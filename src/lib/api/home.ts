@@ -33,11 +33,11 @@ export async function getHeroStatic(): Promise<Slider[]> {
 }
 
 export async function getAllBrands(): Promise<Brand[]> {
-  const data = await apiFetch<{ message: string; result: Brand[]; limit?: number }>("/brands/fetch");
+  const data = await apiFetch<{ message: string; result: Brand[]; limit?: number }>("/brands/fetch?limit=9999");
   return data.result || [];
 }
 
 export async function getAllCategories(): Promise<Category[]> {
-  const data = await apiFetch<{ message: string; result: Category[]; limit?: number }>("/shop-by-category/fetch");
+  const data = await apiFetch<{ message: string; result: Category[]; limit?: number }>("/shop-by-category/fetch?limit=9999");
   return data.result || [];
 }
