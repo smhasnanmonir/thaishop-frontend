@@ -218,9 +218,10 @@ const activeFilterCount = Object.values(filters).reduce((sum, arr) => sum + (arr
     var mobileClose = document.getElementById("mobile-filter-close");
     var mobileApply = document.getElementById("mobile-filter-apply");
 
-    function buildFiltersString() {
+    // Read only from a specific panel to avoid desktop+mobile duplication
+    function buildFiltersFromPanel(panel) {
       var groups = {};
-      document.querySelectorAll(".filter-checkbox:checked").forEach(function (cb) {
+      panel.querySelectorAll(".filter-checkbox:checked").forEach(function (cb) {
         var key = cb.getAttribute("data-group") || cb.name;
         if (!groups[key]) groups[key] = [];
         groups[key].push(cb.value);
@@ -230,8 +231,7 @@ const activeFilterCount = Object.values(filters).reduce((sum, arr) => sum + (arr
         .join(",");
     }
 
-    function navigateWithFilters() {
-      var filtersStr = buildFiltersString();
+    function navigateWithFilters(filtersStr) {
       var url = new URL(window.location.origin + "/products");
       if (filtersStr) url.searchParams.set("filters", filtersStr);
       window.location.href = url.toString();
@@ -266,22 +266,15 @@ const activeFilterCount = Object.values(filters).reduce((sum, arr) => sum + (arr
 
     if (mobileApply) mobileApply.addEventListener("click", function (e) {
       e.preventDefault();
-      // Sync mobile checkboxes to desktop
-      if (mobileFilterPanel && desktopFilterPanel) {
-        mobileFilterPanel.querySelectorAll(".filter-checkbox").forEach(function (srcCb) {
-          var targetCb = desktopFilterPanel.querySelector('.filter-checkbox[name="' + srcCb.name + '"][value="' + srcCb.value + '"]');
-          if (targetCb) targetCb.checked = srcCb.checked;
-        });
-      }
       closeMobileFilters();
-      navigateWithFilters();
+      navigateWithFilters(buildFiltersFromPanel(mobileFilterPanel));
     });
 
-    // Desktop filter checkbox change -> navigate
+    // Desktop filter checkbox change -> read only desktop panel -> navigate
     if (desktopFilterPanel) {
       desktopFilterPanel.querySelectorAll(".filter-checkbox").forEach(function (cb) {
         cb.addEventListener("change", function () {
-          navigateWithFilters();
+          navigateWithFilters(buildFiltersFromPanel(desktopFilterPanel));
         });
       });
     }
