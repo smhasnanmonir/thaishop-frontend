@@ -2,7 +2,7 @@
 // All data needed to render the homepage and the nav/filters.
 
 import { apiFetch } from "./client";
-import type { HomeContent, Brand, Category, Slider } from "../../types/product";
+import type { HomeContent, HomeSection, Brand, Category, Slider } from "../../types/product";
 
 interface HomeContentLimits {
   categoryLimit?: number;
@@ -29,6 +29,11 @@ export async function getHeroCarousel(): Promise<Slider[]> {
 
 export async function getHeroStatic(): Promise<Slider[]> {
   const data = await apiFetch<{ success: boolean; message: string; result: Slider[] }>("/home-content/static");
+  return data.result || [];
+}
+
+export async function getHomeSections(): Promise<HomeSection[]> {
+  const data = await apiFetch<{ success: boolean; message: string; result: HomeSection[] }>("/home-content/sections");
   return data.result || [];
 }
 

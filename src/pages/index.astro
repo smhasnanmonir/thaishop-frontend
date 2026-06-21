@@ -9,7 +9,7 @@ import SkinTypeCard from "../components/ui/SkinTypeCard.astro";
 import BrandCard from "../components/ui/BrandCard.astro";
 import { api } from "../lib/api";
 
-import type { Slider, Category, SkinConcern, SkinType, Brand, Product } from "../lib/api";
+import type { Slider, Category, SkinConcern, SkinType, Brand, Product, HomeSection } from "../lib/api";
 
 let carouselSlides: Slider[] = [];
 let staticSlides: Slider[] = [];
@@ -18,53 +18,45 @@ let concerns: SkinConcern[] = [];
 let types: SkinType[] = [];
 let brands: Brand[] = [];
 let latestProducts: Product[] = [];
+let homeSections: HomeSection[] = [];
 let fetchError = false;
-
-let concernProducts: Product[] = [];
-let selectedConcern: SkinConcern | null = null;
-let skinTypeProducts: Product[] = [];
-let selectedSkinType: SkinType | null = null;
-let brandProducts: Product[] = [];
-let selectedBrand: Brand | null = null;
 
 try {
   const homeData = await api.getHomeContent({ categoryLimit: 6, brandLimit: 6 });
-  [carouselSlides, staticSlides] = await Promise.all([
+  [carouselSlides, staticSlides, homeSections] = await Promise.all([
     api.getHeroCarousel(),
     api.getHeroStatic(),
+    api.getHomeSections(),
   ]);
   categories = homeData.categories || [];
   concerns = homeData.concerns || [];
   types = homeData.types || [];
   brands = homeData.brands || [];
   latestProducts = await api.getLatestProducts(12);
-
-  if (concerns.length > 0) {
-    selectedConcern = (concerns.find(c => c.slug === "damaged-skin" || c.slug === "acne") || concerns[0]) || null;
-    if (selectedConcern) {
-      const data = await api.getProductsBySkinConcern(selectedConcern.slug, 1, 6);
-      concernProducts = data.result || [];
-    }
-  }
-
-  if (types.length > 0) {
-    selectedSkinType = (types.find(t => t.slug === "oily" || t.slug === "sensitive") || types[0]) || null;
-    if (selectedSkinType) {
-      const data = await api.getProductsBySkinType(selectedSkinType.slug, 1, 6);
-      skinTypeProducts = data.result || [];
-    }
-  }
-
-  if (brands.length > 0) {
-    selectedBrand = (brands.find(b => b.slug === "growus" || b.slug === "celimax") || brands[0]) || null;
-    if (selectedBrand) {
-      const data = await api.getProductsByBrand(selectedBrand.slug, 1, 6);
-      brandProducts = data.result || [];
-    }
-  }
 } catch (error) {
   console.error("Failed to load storefront home content from backend API:", error);
   fetchError = true;
+}
+
+// Helper to build "View All" link for a section type
+function getViewAllHref(section: HomeSection): string | null {
+  if (section.filter_slug) {
+    switch (section.section_type) {
+      case "brand": return `/brands/${section.filter_slug}`;
+      case "category": return `/categories/${section.filter_slug}`;
+      case "concern": return `/concerns/${section.filter_slug}`;
+      case "skin_type": return `/skin-types/${section.filter_slug}`;
+      default: return null;
+    }
+  }
+  // Fallback to listing pages
+  switch (section.section_type) {
+    case "brand": return "/brands";
+    case "category": return "/categories";
+    case "concern": return "/concerns";
+    case "skin_type": return "/skin-types";
+    default: return null;
+  }
 }
 ---
 
@@ -152,89 +144,42 @@ try {
     </div>
   </section>
 
-  {/* Section 3a: Curated Concern Suggestions */}
-  {selectedConcern && concernProducts.length > 0 && (
-    <section class="bg-canvas px-4 md:px-6 py-12 md:py-16 border-t border-hairline-soft">
+  {/* Dynamic Home Sections (brand / category / concern / skin_type / custom) */}
+  {homeSections.map((section, idx) => (
+    <section class:list={[
+      "px-4 md:px-6 py-12 md:py-16",
+      idx % 2 === 0 ? "bg-canvas" : "bg-surface-soft",
+      "border-t border-hairline-soft",
+    ]}>
       <div class="mx-auto" style="max-width: 1536px;">
         <div class="flex items-center justify-between mb-8 md:mb-10">
           <div class="flex items-center gap-3">
             <div class="w-[5px] h-7 bg-primary rounded-xs"></div>
             <h2 class="font-serif text-[24px] md:text-[28px] font-bold text-ink m-0">
-              For {selectedConcern.name}
+              {section.title}
             </h2>
           </div>
-          <a href={`/concerns/${selectedConcern.slug}`} class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-surface-blush bg-surface-blush text-primary font-sans text-[11px] font-bold uppercase tracking-[1px] no-underline transition-all duration-200 hover:bg-primary hover:text-on-primary hover:border-primary">
-            <span>View All</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-          </a>
+          {(() => {
+            const href = getViewAllHref(section);
+            return href ? (
+              <a href={href} class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-surface-blush bg-surface-blush text-primary font-sans text-[11px] font-bold uppercase tracking-[1px] no-underline transition-all duration-200 hover:bg-primary hover:text-on-primary hover:border-primary">
+                <span>View All</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </a>
+            ) : null;
+          })()}
         </div>
         
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 sm:gap-3">
-          {concernProducts.map(prod => (
+          {section.products.map(prod => (
             <ProductCard product={prod} />
           ))}
         </div>
       </div>
     </section>
-  )}
-
-  {/* Section 3b: Curated Skin Type Suggestions */}
-  {selectedSkinType && skinTypeProducts.length > 0 && (
-    <section class="bg-surface-soft px-4 md:px-6 py-12 md:py-16 border-t border-hairline-soft">
-      <div class="mx-auto" style="max-width: 1536px;">
-        <div class="flex items-center justify-between mb-8 md:mb-10">
-          <div class="flex items-center gap-3">
-            <div class="w-[5px] h-7 bg-primary rounded-xs"></div>
-            <h2 class="font-serif text-[24px] md:text-[28px] font-bold text-ink m-0">
-              For {selectedSkinType.name}
-            </h2>
-          </div>
-          <a href={`/skin-types/${selectedSkinType.slug}`} class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-surface-blush bg-surface-blush text-primary font-sans text-[11px] font-bold uppercase tracking-[1px] no-underline transition-all duration-200 hover:bg-primary hover:text-on-primary hover:border-primary">
-            <span>View All</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-          </a>
-        </div>
-        
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 sm:gap-3">
-          {skinTypeProducts.map(prod => (
-            <ProductCard product={prod} />
-          ))}
-        </div>
-      </div>
-    </section>
-  )}
-
-  {/* Section 3c: Curated Brand Suggestions */}
-  {selectedBrand && brandProducts.length > 0 && (
-    <section class="bg-canvas px-4 md:px-6 py-12 md:py-16 border-t border-hairline-soft">
-      <div class="mx-auto" style="max-width: 1536px;">
-        <div class="flex items-center justify-between mb-8 md:mb-10">
-          <div class="flex items-center gap-3">
-            <div class="w-[5px] h-7 bg-primary rounded-xs"></div>
-            <h2 class="font-serif text-[24px] md:text-[28px] font-bold text-ink m-0">
-              From {selectedBrand.name}
-            </h2>
-          </div>
-          <a href={`/brands/${selectedBrand.slug}`} class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-surface-blush bg-surface-blush text-primary font-sans text-[11px] font-bold uppercase tracking-[1px] no-underline transition-all duration-200 hover:bg-primary hover:text-on-primary hover:border-primary">
-            <span>View All</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-          </a>
-        </div>
-        
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 sm:gap-3">
-          {brandProducts.map(prod => (
-            <ProductCard product={prod} />
-          ))}
-        </div>
-      </div>
-    </section>
-  )}
+  ))}
 
   {/* Section 4a: Skin Concern Grid */}
   <section class="bg-surface-soft px-4 md:px-6" style="padding-top: 80px; padding-bottom: 80px;">

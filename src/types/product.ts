@@ -45,6 +45,31 @@ export interface HomeContent {
   brands: Brand[];
 }
 
+export interface HomeSectionProduct {
+  id: number;
+  name: string;
+  slug: string;
+  brand: string;
+  card_photo: string;
+  img: string;
+  price: string;
+  origin_price: string;
+  stock: boolean;
+  origin_country: string;
+}
+
+export interface HomeSection {
+  id: number;
+  title: string;
+  section_type: string;
+  filter_id: number | null;
+  filter_name: string | null;
+  filter_slug: string | null;
+  filter_img: string | null;
+  display_order: number;
+  products: HomeSectionProduct[];
+}
+
 export interface ProductDetails {
   id: number;
   productId: number;
