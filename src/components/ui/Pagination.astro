@@ -31,12 +31,20 @@ const btnHover = "hover:bg-surface-blush hover:border-ink";
 const btnActive = "bg-ink text-on-dark border-ink cursor-default font-bold";
 const btnDisabled = "opacity-35 cursor-not-allowed pointer-events-none";
 const navBase = "gap-1 px-3.5 text-[12px] font-bold tracking-[1px] uppercase";
+
+// Preserve any current query params (e.g. filters, search terms) when changing pages.
+const baseParams = new URLSearchParams(Astro.url.searchParams);
+function pageHref(pageNum: number) {
+  const params = new URLSearchParams(baseParams);
+  params.set("page", String(pageNum));
+  return "?" + params.toString();
+}
 ---
 
 <nav aria-label="Pagination" id={id} class="flex items-center gap-1.5 flex-wrap justify-center font-sans" data-current-page={currentPage} data-total-pages={totalPages}>
   {/* Prev */}
   {currentPage > 1 ? (
-    <a href={`?page=${currentPage - 1}`} aria-label="Previous page" class:list={[btnBase, btnHover, navBase, "gap-1"]}>
+    <a href={pageHref(currentPage - 1)} aria-label="Previous page" class:list={[btnBase, btnHover, navBase, "gap-1"]}>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0"><polyline points="15 18 9 12 15 6"></polyline></svg>
       <span class="hidden sm:inline">Prev</span>
     </a>
@@ -54,13 +62,13 @@ const navBase = "gap-1 px-3.5 text-[12px] font-bold tracking-[1px] uppercase";
     ) : p === currentPage ? (
       <span class:list={[btnBase, btnActive]} aria-current="page">{p}</span>
     ) : (
-      <a href={`?page=${p}`} aria-label={`Page ${p}`} class:list={[btnBase, btnHover, "font-semibold"]}>{p}</a>
+      <a href={pageHref(p as number)} aria-label={`Page ${p}`} class:list={[btnBase, btnHover, "font-semibold"]}>{p}</a>
     )
   )}
 
   {/* Next */}
   {currentPage < totalPages ? (
-    <a href={`?page=${currentPage + 1}`} aria-label="Next page" class:list={[btnBase, btnHover, navBase, "gap-1"]}>
+    <a href={pageHref(currentPage + 1)} aria-label="Next page" class:list={[btnBase, btnHover, navBase, "gap-1"]}>
       <span class="hidden sm:inline">Next</span>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0"><polyline points="9 18 15 12 9 6"></polyline></svg>
     </a>

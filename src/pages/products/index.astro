@@ -83,7 +83,7 @@ const activeFilterCount = Object.values(filters).reduce((sum, arr) => sum + (arr
       </div>
       <span class="font-sans text-[12px] font-bold tracking-[2.5px] uppercase text-primary leading-none">SHOP RANGE</span>
       <h1 class="font-serif text-[34px] md:text-[44px] lg:text-[48px] font-bold text-ink leading-tight m-0">Skincare Collection</h1>
-      <p class="font-sans text-sm md:text-base text-mute m-0 mt-2 leading-relaxed">
+      <p class="font-sans text-sm md:text-base text-mute m-0 mt-2 leading-relaxed" data-filter-swap="paging-text">
         {total > 0
           ? <>Showing {startIdx}&ndash;{endIdx} of {total} products</>
           : <>0 products</>
@@ -98,11 +98,15 @@ const activeFilterCount = Object.values(filters).reduce((sum, arr) => sum + (arr
           <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
         </svg>
         <span>Filters</span>
-        {activeFilterCount > 0 && (
-          <span class="inline-flex bg-primary text-on-primary text-[10px] font-bold w-5 h-5 items-center justify-center rounded-full" id="active-filter-count">{activeFilterCount}</span>
-        )}
+        <span
+          class="inline-flex bg-primary text-on-primary text-[10px] font-bold w-5 h-5 items-center justify-center rounded-full"
+          id="active-filter-count"
+          style={activeFilterCount > 0 ? "" : "display: none;"}
+        >
+          {activeFilterCount}
+        </span>
       </button>
-      <span class="font-sans text-[13px] text-mute">{total} products</span>
+      <span class="font-sans text-[13px] text-mute" data-filter-swap="total-text">{total} products</span>
     </div>
 
     {/* Layout */}
@@ -177,7 +181,7 @@ const activeFilterCount = Object.values(filters).reduce((sum, arr) => sum + (arr
       </aside>
 
       {/* ── Products Section ── */}
-      <div class="flex flex-col gap-8">
+      <div class="flex flex-col gap-8 transition-opacity duration-200" data-filter-swap="listing">
         {/* Empty State */}
         {products.length === 0 ? (
           <div class="flex flex-col items-center justify-center py-20 text-center gap-6 border border-dashed border-hairline">
@@ -211,80 +215,222 @@ const activeFilterCount = Object.values(filters).reduce((sum, arr) => sum + (arr
 
 <script is:inline>
 (function () {
-  function initFilters() {
-    var desktopFilterPanel = document.getElementById("desktop-filter-panel");
-    var mobileFilterPanel = document.getElementById("mobile-filter-panel");
-    var mobileFilterScrim = document.getElementById("mobile-filter-scrim");
-    var mobileToggle = document.getElementById("mobile-filter-toggle");
-    var mobileClose = document.getElementById("mobile-filter-close");
-    var mobileApply = document.getElementById("mobile-filter-apply");
+  var LISTING_SEL = '[data-filter-swap="listing"]';
+  var PAGING_SEL = '[data-filter-swap="paging-text"]';
+  var TOTAL_SEL = '[data-filter-swap="total-text"]';
+  var CHECKBOX_SEL = ".filter-checkbox";
 
-    // Read only from a specific panel to avoid desktop+mobile duplication
-    function buildFiltersFromPanel(panel) {
-      var groups = {};
-      panel.querySelectorAll(".filter-checkbox:checked").forEach(function (cb) {
-        var key = cb.getAttribute("data-group") || cb.name;
-        if (!groups[key]) groups[key] = [];
-        groups[key].push(cb.value);
-      });
-      return Object.keys(groups)
-        .map(function (k) { return k + ":" + groups[k].join("|"); })
-        .join(",");
-    }
+  var desktopFilterPanel = document.getElementById("desktop-filter-panel");
+  var mobileFilterPanel = document.getElementById("mobile-filter-panel");
+  var mobileFilterScrim = document.getElementById("mobile-filter-scrim");
+  var mobileToggle = document.getElementById("mobile-filter-toggle");
+  var mobileClose = document.getElementById("mobile-filter-close");
+  var mobileApply = document.getElementById("mobile-filter-apply");
+  var activeCountEl = document.getElementById("active-filter-count");
 
-    function navigateWithFilters(filtersStr) {
-      var url = new URL(window.location.origin + "/products");
-      if (filtersStr) url.searchParams.set("filters", filtersStr);
-      window.location.href = url.toString();
-    }
+  var currentController = null;
 
-    // ── Mobile filter panel ──
-    function openMobileFilters() {
-      if (!mobileFilterPanel || !mobileFilterScrim) return;
-      mobileFilterPanel.classList.add("open");
-      mobileFilterScrim.style.opacity = "1";
-      mobileFilterScrim.style.pointerEvents = "auto";
-      document.body.style.overflow = "hidden";
-    }
-
-    function closeMobileFilters() {
-      if (!mobileFilterPanel || !mobileFilterScrim) return;
-      mobileFilterPanel.classList.remove("open");
-      mobileFilterScrim.style.opacity = "0";
-      mobileFilterScrim.style.pointerEvents = "none";
-      document.body.style.overflow = "";
-    }
-
-    if (mobileToggle) mobileToggle.addEventListener("click", function (e) {
-      e.preventDefault();
-      openMobileFilters();
+  function parseFilters(raw) {
+    var filters = {};
+    if (!raw) return filters;
+    raw.split(",").forEach(function (pair) {
+      var sep = pair.indexOf(":");
+      if (sep === -1) return;
+      var key = pair.slice(0, sep).trim();
+      var vals = pair.slice(sep + 1).split("|").filter(Boolean);
+      var validKeys = ["category", "brand", "skin_type", "skin_concern"];
+      if (validKeys.indexOf(key) !== -1 && vals.length > 0) {
+        filters[key] = vals;
+      }
     });
-    if (mobileClose) mobileClose.addEventListener("click", function (e) {
-      e.preventDefault();
-      closeMobileFilters();
-    });
-    if (mobileFilterScrim) mobileFilterScrim.addEventListener("click", closeMobileFilters);
+    return filters;
+  }
 
-    if (mobileApply) mobileApply.addEventListener("click", function (e) {
-      e.preventDefault();
-      closeMobileFilters();
-      navigateWithFilters(buildFiltersFromPanel(mobileFilterPanel));
+  function buildFiltersString(filters) {
+    var parts = [];
+    Object.keys(filters).forEach(function (key) {
+      var vals = filters[key];
+      if (Array.isArray(vals) && vals.length > 0) {
+        parts.push(key + ":" + vals.join("|"));
+      }
     });
+    return parts.join(",");
+  }
 
-    // Desktop filter checkbox change -> read only desktop panel -> navigate
-    if (desktopFilterPanel) {
-      desktopFilterPanel.querySelectorAll(".filter-checkbox").forEach(function (cb) {
-        cb.addEventListener("change", function () {
-          navigateWithFilters(buildFiltersFromPanel(desktopFilterPanel));
-        });
-      });
+  function buildFiltersFromPanel(panel) {
+    var groups = {};
+    panel.querySelectorAll(CHECKBOX_SEL + ":checked").forEach(function (cb) {
+      var key = cb.getAttribute("data-group") || cb.name;
+      if (!Array.isArray(groups[key])) groups[key] = [];
+      groups[key].push(cb.value);
+    });
+    return groups;
+  }
+
+  function syncCheckboxes(filters) {
+    document.querySelectorAll(CHECKBOX_SEL).forEach(function (cb) {
+      var key = cb.getAttribute("data-group") || cb.name;
+      var vals = filters[key] || [];
+      cb.checked = vals.indexOf(cb.value) !== -1;
+    });
+  }
+
+  function activeFilterCount(filters) {
+    return Object.keys(filters).reduce(function (sum, key) {
+      var arr = filters[key];
+      return sum + (Array.isArray(arr) ? arr.length : 0);
+    }, 0);
+  }
+
+  function updateActiveCount(filters) {
+    var count = activeFilterCount(filters);
+    if (activeCountEl) {
+      activeCountEl.textContent = String(count);
+      activeCountEl.style.display = count > 0 ? "inline-flex" : "none";
     }
   }
 
+  function buildListingUrl(filters, page) {
+    var url = new URL(window.location.origin + "/products");
+    var fs = buildFiltersString(filters);
+    if (fs) url.searchParams.set("filters", fs);
+    if (page > 1) url.searchParams.set("page", String(page));
+    return url;
+  }
+
+  function swapFromHtml(html) {
+    var doc = new DOMParser().parseFromString(html, "text/html");
+    [LISTING_SEL, PAGING_SEL, TOTAL_SEL].forEach(function (sel) {
+      var source = doc.querySelector(sel);
+      var target = document.querySelector(sel);
+      if (source && target) {
+        target.innerHTML = source.innerHTML;
+      }
+    });
+  }
+
+  function setListingLoading(loading) {
+    var listing = document.querySelector(LISTING_SEL);
+    if (!listing) return;
+    if (loading) {
+      listing.classList.add("opacity-60", "pointer-events-none");
+    } else {
+      listing.classList.remove("opacity-60", "pointer-events-none");
+    }
+  }
+
+  function applyUrl(url, opts) {
+    opts = opts || {};
+    var pushHistory = opts.pushHistory !== false;
+
+    if (currentController) currentController.abort();
+    currentController = new AbortController();
+    setListingLoading(true);
+
+    fetch(url.toString(), { signal: currentController.signal, credentials: "same-origin" })
+      .then(function (res) {
+        if (!res.ok) throw new Error("Failed to load products");
+        return res.text();
+      })
+      .then(function (html) {
+        swapFromHtml(html);
+        var filters = parseFilters(url.searchParams.get("filters") || "");
+        var page = parseInt(url.searchParams.get("page") || "1", 10) || 1;
+        if (pushHistory) {
+          history.pushState({ filters: filters, page: page }, "", url.toString());
+        }
+        syncCheckboxes(filters);
+        updateActiveCount(filters);
+        if (opts.scroll) {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+      })
+      .catch(function (err) {
+        if (err && err.name === "AbortError") return;
+        // Fallback to full navigation on error
+        window.location.href = url.toString();
+      })
+      .finally(function () {
+        currentController = null;
+        setListingLoading(false);
+      });
+  }
+
+  function applyFiltersFromPanel(panel, pushHistory) {
+    var filters = buildFiltersFromPanel(panel);
+    applyUrl(buildListingUrl(filters, 1), { pushHistory: pushHistory });
+  }
+
+  function openMobileFilters() {
+    if (!mobileFilterPanel || !mobileFilterScrim) return;
+    mobileFilterPanel.classList.add("open");
+    mobileFilterScrim.style.opacity = "1";
+    mobileFilterScrim.style.pointerEvents = "auto";
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeMobileFilters() {
+    if (!mobileFilterPanel || !mobileFilterScrim) return;
+    mobileFilterPanel.classList.remove("open");
+    mobileFilterScrim.style.opacity = "0";
+    mobileFilterScrim.style.pointerEvents = "none";
+    document.body.style.overflow = "";
+  }
+
+  if (mobileToggle) {
+    mobileToggle.addEventListener("click", function (e) { e.preventDefault(); openMobileFilters(); });
+  }
+  if (mobileClose) {
+    mobileClose.addEventListener("click", function (e) { e.preventDefault(); closeMobileFilters(); });
+  }
+  if (mobileFilterScrim) mobileFilterScrim.addEventListener("click", closeMobileFilters);
+
+  if (mobileApply) {
+    mobileApply.addEventListener("click", function (e) {
+      e.preventDefault();
+      closeMobileFilters();
+      applyFiltersFromPanel(mobileFilterPanel, true);
+    });
+  }
+
+  if (desktopFilterPanel) {
+    desktopFilterPanel.querySelectorAll(CHECKBOX_SEL).forEach(function (cb) {
+      cb.addEventListener("change", function () {
+        applyFiltersFromPanel(desktopFilterPanel, true);
+      });
+    });
+  }
+
+  // Intercept pagination clicks inside the listing so they update without reload.
+  document.addEventListener("click", function (e) {
+    var link = e.target.closest("a");
+    if (!link) return;
+    var href = link.getAttribute("href") || "";
+    if (href.indexOf("?page=") !== 0 && href.indexOf("&page=") === -1) return;
+    if (!link.closest(LISTING_SEL)) return;
+    e.preventDefault();
+    var url = new URL(href, window.location.href);
+    applyUrl(url, { pushHistory: true, scroll: true });
+  });
+
+  // Keep UI in sync when using browser Back/Forward.
+  window.addEventListener("popstate", function () {
+    var url = new URL(window.location.href);
+    syncCheckboxes(parseFilters(url.searchParams.get("filters") || ""));
+    updateActiveCount(parseFilters(url.searchParams.get("filters") || ""));
+    applyUrl(url, { pushHistory: false });
+  });
+
+  function init() {
+    var filters = parseFilters(new URL(window.location.href).searchParams.get("filters") || "");
+    syncCheckboxes(filters);
+    updateActiveCount(filters);
+  }
+
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initFilters);
+    document.addEventListener("DOMContentLoaded", init);
   } else {
-    initFilters();
+    init();
   }
 })();
 </script>
