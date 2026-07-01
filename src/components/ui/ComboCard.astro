@@ -1,0 +1,67 @@
+---
+import { formatPrice } from "../../lib/utils";
+import type { ComboListItem } from "../../lib/api";
+
+interface Props {
+  combo: ComboListItem;
+  loading?: "lazy" | "eager";
+}
+
+const { combo, loading = "lazy" } = Astro.props;
+
+const imageUrl =
+  combo.cover_photo ||
+  "https://images.unsplash.com/photo-1556228720-195a672e8a03?q=80&w=400&auto=format&fit=crop";
+---
+
+<div class="group flex flex-col bg-white border border-hairline-soft rounded-none">
+  <a href={`/combos/${combo.slug}`} class="block relative" aria-label={`View details for ${combo.name}`}>
+    <div class="relative w-full aspect-[4/5] bg-surface-card overflow-hidden">
+      <img
+        src={imageUrl}
+        alt={combo.name}
+        loading={loading}
+        class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+      />
+
+      <div class="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+        <span class="inline-flex items-center font-sans text-[11px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none rounded-none bg-primary text-on-primary">
+          BUNDLE
+        </span>
+        <span class="inline-flex items-center font-sans text-[11px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none rounded-none bg-ink text-on-dark">
+          {combo.product_count} Items
+        </span>
+      </div>
+    </div>
+  </a>
+
+  <div class="flex flex-col flex-1 p-4 sm:p-5 gap-2.5">
+    <a href={`/combos/${combo.slug}`} class="no-underline text-ink">
+      <h3 class="font-serif text-[17px] sm:text-[20px] font-bold leading-tight text-ink m-0 line-clamp-2">
+        {combo.name}
+      </h3>
+    </a>
+
+    <div class="flex items-baseline gap-2">
+      <span class="font-sans text-[20px] sm:text-[22px] font-bold text-ink leading-none">
+        {formatPrice(combo.price)}
+      </span>
+    </div>
+
+    {combo.description && (
+      <p class="font-sans text-[13px] text-mute leading-relaxed m-0 line-clamp-2">
+        {combo.description}
+      </p>
+    )}
+
+    <div class="mt-auto pt-3">
+      <a
+        href={`/combos/${combo.slug}`}
+        class="flex items-center justify-center w-full min-h-[44px] h-12 px-6 bg-transparent text-ink border-2 border-ink rounded-none font-sans text-[13px] font-bold tracking-[1.2px] uppercase no-underline cursor-pointer transition-colors duration-200 hover:bg-surface-blush"
+        aria-label={`View details for ${combo.name}`}
+      >
+        View Details
+      </a>
+    </div>
+  </div>
+</div>

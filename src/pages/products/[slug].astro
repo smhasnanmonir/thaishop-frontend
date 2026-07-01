@@ -15,6 +15,10 @@ import InfoCardList from "../../components/ui/InfoCardList.astro";
 
 const { slug } = Astro.params;
 
+if (!slug) {
+  return Astro.redirect("/404");
+}
+
 let product: Product | null = null;
 let relatedProducts: Product[] = [];
 let brandProducts: Product[] = [];

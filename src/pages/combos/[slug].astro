@@ -1,0 +1,248 @@
+---
+export const prerender = false;
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Breadcrumb from "../../components/ui/Breadcrumb.astro";
+import ComboProductCard from "../../components/ui/ComboProductCard.astro";
+import VideoPlayer from "../../components/ui/VideoPlayer.astro";
+import { BreadcrumbSchema, ComboSchema } from "../../components/seo";
+import { formatPrice } from "../../lib/utils";
+import { api } from "../../lib/api";
+import type { ComboDetail } from "../../lib/api";
+
+const { slug } = Astro.params;
+
+if (!slug) {
+  return Astro.redirect("/404");
+}
+
+let combo: ComboDetail | null = null;
+
+try {
+  combo = await api.getComboBySlug(slug);
+} catch (error) {
+  console.error(`Error loading combo slug "${slug}" from backend:`, error);
+}
+
+if (!combo) {
+  return Astro.redirect("/404");
+}
+
+const galleryImages = [
+  combo.cover_photo,
+  ...(combo.photos || []).sort((a, b) => a.order - b.order).map((p) => p.photoUrl),
+].filter((url, idx, arr) => url && arr.indexOf(url) === idx);
+---
+
+<BaseLayout
+  title={`${combo.name} | Value Combo | TOK Skincare Bangladesh`}
+  description={combo.description?.slice(0, 150) || `Curated bundle of ${combo.product_count} authentic Thai skincare products — save on premium skincare.`}
+  image={combo.cover_photo}
+>
+  <Fragment slot="head">
+    <BreadcrumbSchema
+      items={[
+        { label: "Home", href: "/" },
+        { label: "Combos", href: "/combos" },
+        { label: combo.name },
+      ]}
+    />
+    <ComboSchema combo={combo} />
+  </Fragment>
+
+  <div class="max-w-[1536px] mx-auto px-[3%] md:px-6 pt-4 pb-16 md:pb-24">
+    {/* Breadcrumbs */}
+    <div class="mt-4 mb-6">
+      <Breadcrumb
+        items={[
+          { label: "Home", href: "/" },
+          { label: "Combos", href: "/combos" },
+          { label: combo.name },
+        ]}
+      />
+    </div>
+
+    {/* ═══ Two-Column Hero ═══ */}
+    <div class="grid grid-cols-1 lg:grid-cols-[42fr_58fr] gap-8 lg:gap-14 items-start mb-16 md:mb-24 overflow-hidden">
+
+      {/* ── Image Gallery Column ── */}
+      <div class="flex flex-col gap-3 min-w-0">
+        <div class="relative w-full aspect-[4/5] bg-surface-card border border-hairline overflow-hidden">
+          <img src={combo.cover_photo} alt={combo.name} class="absolute inset-0 w-full h-full object-cover" id="combo-main-image" />
+
+          <div class="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+            <span class="inline-flex items-center font-sans text-[10px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none bg-primary text-on-primary">
+              BUNDLE
+            </span>
+            <span class="inline-flex items-center font-sans text-[10px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none bg-ink text-on-dark">
+              {combo.product_count} Items
+            </span>
+          </div>
+        </div>
+
+        {galleryImages.length > 1 && (
+          <div class="flex gap-2 overflow-x-auto pb-1">
+            {galleryImages.map((img, idx) => (
+              <button
+                class:list={[
+                  "w-[60px] h-[80px] md:w-[70px] md:h-[93px] border shrink-0 p-0 cursor-pointer overflow-hidden bg-canvas transition-colors",
+                  idx === 0 ? "border-primary outline-1 outline-primary" : "border-hairline",
+                ]}
+                data-img-url={img}
+                aria-label={`View photo ${idx + 1}`}
+              >
+                <img src={img} alt="" class="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Info Column ── */}
+      <div class="flex flex-col min-w-0">
+        <span class="font-sans text-[12px] font-bold tracking-[2.5px] uppercase text-primary leading-none mb-3">CURATED BUNDLE</span>
+
+        <h1 class="font-serif text-[30px] md:text-[38px] lg:text-[44px] font-bold text-ink leading-tight m-0 mb-4">{combo.name}</h1>
+
+        {/* Pricing */}
+        <div class="border-t border-b border-hairline py-4 mb-5 flex flex-wrap items-baseline gap-3">
+          <span class="font-sans text-[30px] md:text-[34px] font-bold text-ink leading-none">{formatPrice(combo.price)}</span>
+          <span class="font-sans text-[13px] text-mute">{combo.product_count} product{combo.product_count !== 1 ? "s" : ""} in this bundle</span>
+        </div>
+
+        {/* Description */}
+        {combo.description && (
+          <div class="mb-6">
+            <h3 class="font-sans text-[11px] font-bold tracking-[1.5px] uppercase text-mute mb-2">About This Bundle</h3>
+            <p class="font-sans text-[14px] md:text-[15px] text-body leading-relaxed m-0 whitespace-pre-line">{combo.description}</p>
+          </div>
+        )}
+
+        {/* Trust indicators */}
+        <div class="grid grid-cols-2 gap-3 mb-5">
+          <div class="flex items-center gap-2 bg-surface-soft border border-hairline-soft px-4 py-3">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary shrink-0">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+            <span class="font-sans text-[12px] text-ink font-medium">100% Authentic</span>
+          </div>
+          <div class="flex items-center gap-2 bg-surface-soft border border-hairline-soft px-4 py-3">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary shrink-0">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span class="font-sans text-[12px] text-ink font-medium">Imported from Thailand</span>
+          </div>
+        </div>
+
+        {/* CTA */}
+        <button
+          class="inline-flex items-center justify-center w-full min-h-[52px] sm:h-14 px-6 bg-primary text-on-primary rounded-none font-sans text-[13px] font-bold tracking-[1.2px] uppercase no-underline cursor-pointer transition-colors duration-200 hover:bg-primary-pressed mb-3"
+          id="add-bundle-to-cart"
+          data-products={JSON.stringify(combo.comboProducts.map((cp) => ({
+            productId: cp.productId,
+            name: cp.product.name,
+            price: parseFloat(cp.product.price),
+            image: cp.product.card_photo || cp.product.img || "",
+            slug: cp.product.slug,
+            quantity: cp.quantity,
+          })))}
+        >
+          Add All to Cart — {formatPrice(combo.price)}
+        </button>
+        <a href="/products" class="inline-flex items-center justify-center w-full min-h-[44px] h-12 px-6 bg-transparent text-ink border-2 border-ink rounded-none font-sans text-[13px] font-bold tracking-[1.2px] uppercase no-underline cursor-pointer transition-colors duration-200 hover:bg-surface-blush">
+          Shop Individual Products
+        </a>
+      </div>
+    </div>
+
+    {/* ═══ Products in this Combo ═══ */}
+    <section id="combo-products" class="border-t border-hairline pt-12 md:pt-16 mb-12 md:mb-16">
+      <div class="mb-8 md:mb-10">
+        <span class="font-sans text-[11px] font-bold tracking-[2.5px] uppercase text-primary leading-none">INSIDE THIS BUNDLE</span>
+        <h2 class="font-serif text-[28px] md:text-[36px] font-bold text-ink m-0 mt-2">What's Included</h2>
+        <p class="font-sans text-[14px] text-mute m-0 mt-2 leading-relaxed">{combo.product_count} product{combo.product_count !== 1 ? "s" : ""} carefully selected for your routine.</p>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
+        {combo.comboProducts.map((cp) => (
+          <ComboProductCard item={cp} />
+        ))}
+      </div>
+    </section>
+
+    {/* ═══ Video Section ═══ */}
+    {combo.video && (
+      <section class="border-t border-hairline pt-12 md:pt-16 mb-12 md:mb-16">
+        <div class="mb-6 md:mb-8">
+          <span class="font-sans text-[11px] font-bold tracking-[2.5px] uppercase text-primary leading-none">SEE IT IN ACTION</span>
+          <h2 class="font-serif text-[28px] md:text-[36px] font-bold text-ink m-0 mt-2">Watch the Full Ritual</h2>
+        </div>
+        <div class="aspect-video bg-surface-card border border-hairline overflow-hidden">
+          <VideoPlayer url={combo.video} title={combo.name} poster={combo.cover_photo} />
+        </div>
+      </section>
+    )}
+  </div>
+</BaseLayout>
+
+<!-- ── Thumbnail gallery interaction ── -->
+<script>
+  function initComboGallery() {
+    const mainImage = document.getElementById("combo-main-image") as HTMLImageElement;
+    const thumbs = document.querySelectorAll("[data-img-url]");
+
+    thumbs.forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        thumbs.forEach((t) => {
+          t.classList.remove("border-primary");
+          t.classList.add("border-hairline");
+          (t as HTMLElement).style.outline = "";
+        });
+
+        const target = e.currentTarget as HTMLElement;
+        target.classList.remove("border-hairline");
+        target.classList.add("border-primary");
+        target.style.outline = "1px solid var(--color-primary, #C8365A)";
+
+        const newUrl = target.getAttribute("data-img-url");
+        if (newUrl && mainImage) mainImage.src = newUrl;
+      });
+    });
+  }
+
+  // ── Add bundle to cart ──
+  const addBtn = document.getElementById("add-bundle-to-cart") as HTMLButtonElement | null;
+  if (addBtn) {
+    addBtn.addEventListener("click", () => {
+      const raw = addBtn.getAttribute("data-products");
+      if (!raw) return;
+
+      import("../../lib/cart").then(({ addItem }) => {
+        const products = JSON.parse(raw) as Array<{
+          productId: number; name: string; price: number; image: string; slug: string; quantity: number;
+        }>;
+
+        products.forEach((p) => addItem(p));
+
+        // success feedback
+        const orig = addBtn.textContent;
+        addBtn.textContent = "✓ Added to Cart";
+        addBtn.classList.remove("bg-primary", "hover:bg-primary-pressed");
+        addBtn.classList.add("bg-success-deep", "hover:bg-success-deep");
+        setTimeout(() => {
+          addBtn.textContent = orig;
+          addBtn.classList.remove("bg-success-deep", "hover:bg-success-deep");
+          addBtn.classList.add("bg-primary", "hover:bg-primary-pressed");
+        }, 2000);
+
+        window.dispatchEvent(new CustomEvent("toggle-cart-drawer", { detail: { open: true } }));
+      });
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initComboGallery);
+  } else {
+    initComboGallery();
+  }
+</script>

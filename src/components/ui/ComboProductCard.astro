@@ -1,0 +1,87 @@
+---
+import { formatPrice } from "../../lib/utils";
+import type { ComboProductItem } from "../../lib/api";
+
+interface Props {
+  item: ComboProductItem;
+  loading?: "lazy" | "eager";
+}
+
+const { item, loading = "lazy" } = Astro.props;
+const product = item.product;
+
+const imageUrl =
+  product.card_photo ||
+  product.img ||
+  "https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?q=80&w=400&auto=format&fit=crop";
+
+const currentPrice = parseFloat(product.price);
+const originalPrice = parseFloat(product.origin_price);
+const onSale = originalPrice > currentPrice;
+---
+
+<div class="group flex flex-col bg-white border border-hairline-soft rounded-none">
+  <a href={`/products/${product.slug}`} class="block relative" aria-label={`View ${product.name}`}>
+    <div class="relative w-full aspect-[3/4] bg-surface-card overflow-hidden">
+      <img
+        src={imageUrl}
+        alt={product.name}
+        loading={loading}
+        class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+      />
+
+      {/* Quantity + sale + stock badges */}
+      <div class="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+        <span class="inline-flex items-center font-sans text-[10px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none bg-ink text-on-dark">
+          Qty: {item.quantity}
+        </span>
+        {onSale && (
+          <span class="inline-flex items-center font-sans text-[10px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none bg-primary text-on-primary">
+            -{Math.round(((originalPrice - currentPrice) / originalPrice) * 100)}%
+          </span>
+        )}
+        {!product.stock && (
+          <span class="inline-flex items-center font-sans text-[10px] font-bold tracking-[1.5px] uppercase px-3 py-1.5 leading-none bg-mute text-on-primary">
+            SOLD OUT
+          </span>
+        )}
+      </div>
+    </div>
+  </a>
+
+  <div class="flex flex-col flex-1 p-3.5 sm:p-5 gap-2">
+    <span class="font-sans text-[11px] font-bold tracking-[2px] uppercase text-mute">{product.brand}</span>
+
+    <a href={`/products/${product.slug}`} class="no-underline text-ink block flex-1">
+      <h3 class="font-sans text-[13px] md:text-[14px] font-semibold leading-[1.4] line-clamp-2 text-ink m-0">
+        {product.name}
+      </h3>
+    </a>
+
+    <div class="flex items-baseline gap-2 mt-1">
+      <span class="font-sans text-[18px] md:text-[20px] font-bold text-ink leading-none">
+        {formatPrice(product.price)}
+      </span>
+      {onSale && (
+        <span class="font-sans text-[13px] md:text-[14px] text-ash line-through">
+          {formatPrice(product.origin_price)}
+        </span>
+      )}
+    </div>
+
+    <div class="mt-auto pt-2">
+      {product.stock ? (
+        <a
+          href={`/products/${product.slug}`}
+          class="flex items-center justify-center w-full min-h-[44px] h-11 px-4 border border-hairline bg-transparent text-mute rounded-none font-sans text-[11px] font-bold tracking-[1px] uppercase no-underline cursor-pointer transition-colors duration-200 hover:border-ink hover:text-ink"
+        >
+          View Product
+        </a>
+      ) : (
+        <span class="flex items-center justify-center w-full min-h-[44px] h-11 px-4 border border-hairline bg-surface-soft text-mute rounded-none font-sans text-[11px] font-bold tracking-[1px] uppercase">
+          Out of Stock
+        </span>
+      )}
+    </div>
+  </div>
+</div>

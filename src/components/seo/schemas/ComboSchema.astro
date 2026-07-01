@@ -1,0 +1,47 @@
+---
+import type { ComboDetail, JsonLdCombo } from "../../types/combo";
+import JsonLd from "../JsonLd.astro";
+
+interface Props {
+  combo: ComboDetail;
+}
+
+const { combo } = Astro.props;
+const baseUrl = Astro.site?.toString().replace(/\/$/, "") ?? "https://tokbd.com";
+const url = `${baseUrl}/combos/${combo.slug}`;
+
+const images = [
+  combo.cover_photo,
+  ...(combo.photos || []).map((p) => p.photoUrl),
+].filter(Boolean);
+
+const data: JsonLdCombo = {
+  "@context": "https://schema.org",
+  "@type": "Product",
+  name: combo.name,
+  description: combo.description || `Curated bundle of ${combo.product_count} authentic Thai skincare products.`,
+  image: images,
+  sku: String(combo.id),
+  brand: { "@type": "Brand", name: "TOK Skincare" },
+  url,
+  offers: {
+    "@type": "Offer",
+    priceCurrency: "BDT",
+    price: parseFloat(combo.price),
+    availability: "https://schema.org/InStock",
+    url,
+  },
+  mainEntity: {
+    "@type": "ItemList",
+    numberOfItems: combo.product_count,
+    itemListElement: combo.comboProducts.map((cp, idx) => ({
+      "@type": "ListItem",
+      position: idx + 1,
+      url: `${baseUrl}/products/${cp.product.slug}`,
+      name: cp.product.name,
+    })),
+  },
+};
+---
+
+<JsonLd data={data} />

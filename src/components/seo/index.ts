@@ -4,3 +4,4 @@ export { default as JsonLd } from "./JsonLd.astro";
 export { default as BreadcrumbSchema } from "./BreadcrumbSchema.astro";
 export { default as OrganizationSchema } from "./OrganizationSchema.astro";
 export { default as ProductSchema } from "./schemas/ProductSchema.astro";
+export { default as ComboSchema } from "./schemas/ComboSchema.astro";

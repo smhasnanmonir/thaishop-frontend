@@ -10,6 +10,11 @@ import type { Category, Product } from "../../lib/api";
 const PAGE_SIZE = 15;
 
 const { slug } = Astro.params;
+
+if (!slug) {
+  return Astro.redirect("/404");
+}
+
 const page = Math.max(1, parseInt(Astro.url.searchParams.get("page") || "1"));
 
 let products: Product[] = [];

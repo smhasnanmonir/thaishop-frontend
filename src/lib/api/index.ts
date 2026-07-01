@@ -16,6 +16,7 @@ export {
   searchProducts,
   type SearchResponse,
 } from "./products";
+export { getAllCombos, getComboBySlug } from "./combo";
 export {
   getGuestCart,
   addToGuestCart,
@@ -42,6 +43,15 @@ export type {
   ProductFilter,
 } from "../../types/product";
 export { encodeFilters } from "../../types/product";
+
+export type {
+  ComboListItem,
+  ComboDetail,
+  ComboPhoto,
+  ComboProductItem,
+  ComboProduct,
+  PaginatedCombos,
+} from "../../types/combo";
 
 export type {
   OfflineCartItem,
@@ -73,6 +83,7 @@ import {
   getRandomProducts,
   searchProducts,
 } from "./products";
+import { getAllCombos, getComboBySlug } from "./combo";
 import {
   getGuestCart,
   addToGuestCart,
@@ -99,6 +110,8 @@ export const api = {
   getProductsBySkinConcern,
   getRandomProducts,
   searchProducts,
+  getAllCombos,
+  getComboBySlug,
   getGuestCart,
   addToGuestCart,
   updateGuestCartQuantity,
