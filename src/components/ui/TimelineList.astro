@@ -1,0 +1,36 @@
+---
+export interface Props {
+  items: string[];
+  icon?: 'number' | 'bullet';
+}
+
+const { items, icon = 'number' } = Astro.props;
+---
+
+<div class="pb-4">
+  {items.map((item, index) => (
+    <div class="flex gap-4 relative">
+      {/* Icon + connector line */}
+      <div class="flex flex-col items-center">
+        {icon === 'number' ? (
+          <div class="w-8 h-8 rounded-full bg-primary text-white font-sans text-[13px] font-bold flex items-center justify-center shrink-0 z-10">
+            {index + 1}
+          </div>
+        ) : (
+          <div class="w-8 h-8 rounded-full bg-surface-blush border-2 border-primary flex items-center justify-center shrink-0 z-10">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+        )}
+        {index < items.length - 1 && (
+          <div class="w-[2px] h-full bg-primary/20 absolute left-[15px] top-8"></div>
+        )}
+      </div>
+      {/* Item text */}
+      <div class="pb-6 pt-1">
+        <p class="font-sans text-[14px] text-body leading-relaxed m-0">{item}</p>
+      </div>
+    </div>
+  ))}
+</div>

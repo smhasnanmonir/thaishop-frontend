@@ -10,6 +10,8 @@ import { ProductSchema, BreadcrumbSchema } from "../../components/seo";
 import { formatPrice, safeParseArray } from "../../lib/utils";
 import { api } from "../../lib/api";
 import type { Product } from "../../lib/api";
+import TimelineList from "../../components/ui/TimelineList.astro";
+import InfoCardList from "../../components/ui/InfoCardList.astro";
 
 const { slug } = Astro.params;
 
@@ -262,8 +264,22 @@ const deliveryText = "Inside Dhaka: 1-2 Days \u2022 Outside Dhaka: 3-5 Days";
           <span>Description</span>
           <svg class="accordion-icon transition-transform duration-200" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </button>
-        <div class="accordion-content font-sans text-[14px] text-body leading-relaxed" id="acc-description">
-          <p class="m-0 pb-4">{product.details?.description || "Authentic skincare product imported directly from Thailand. Formulated with premium ingredients to support clear, glowing, and balanced skin."}</p>
+        <div class="accordion-content" id="acc-description">
+          <div class="pb-4">
+            <div class="bg-gradient-to-br from-surface-soft to-canvas border border-hairline-soft p-5 relative overflow-hidden">
+              <div class="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+              <div class="absolute bottom-0 left-0 w-16 h-16 bg-primary/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
+              <p class="font-sans text-[14px] text-body leading-[1.8] m-0 relative z-10">
+                {product.details?.description || "Authentic skincare product imported directly from Thailand. Formulated with premium ingredients to support clear, glowing, and balanced skin."}
+              </p>
+              <div class="flex items-center gap-2 mt-4 pt-4 border-t border-hairline-soft relative z-10">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary shrink-0">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span class="font-sans text-[12px] text-mute">100% Authentic • Direct Import from Thailand</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -274,8 +290,8 @@ const deliveryText = "Inside Dhaka: 1-2 Days \u2022 Outside Dhaka: 3-5 Days";
             <span>Key Ingredients</span>
             <svg class="accordion-icon transition-transform duration-200" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
           </button>
-          <div class="accordion-content font-sans text-[14px] text-body leading-relaxed hidden" id="acc-ingredients">
-            <p class="m-0 pb-4 tracking-[0.2px]">{product.details?.key_ingredient}</p>
+          <div class="accordion-content hidden" id="acc-ingredients">
+            <InfoCardList items={safeParseArray(product.details?.key_ingredient)} columns={2} />
           </div>
         </div>
       )}
@@ -287,10 +303,8 @@ const deliveryText = "Inside Dhaka: 1-2 Days \u2022 Outside Dhaka: 3-5 Days";
             <span>How To Use</span>
             <svg class="accordion-icon transition-transform duration-200" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
           </button>
-          <div class="accordion-content font-sans text-[14px] text-body leading-relaxed hidden" id="acc-howtouse">
-            <ol class="pl-4 m-0 pb-4 flex flex-col gap-1.5">
-              {howToUse.map(step => <li>{step}</li>)}
-            </ol>
+          <div class="accordion-content hidden" id="acc-howtouse">
+            <TimelineList items={howToUse} icon="number" />
           </div>
         </div>
       )}
@@ -302,10 +316,8 @@ const deliveryText = "Inside Dhaka: 1-2 Days \u2022 Outside Dhaka: 3-5 Days";
             <span>Key Benefits</span>
             <svg class="accordion-icon transition-transform duration-200" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
           </button>
-          <div class="accordion-content font-sans text-[14px] text-body leading-relaxed hidden" id="acc-benefits">
-            <ul class="pl-4 m-0 pb-4 flex flex-col gap-1.5">
-              {benefits.map(benefit => <li>{benefit}</li>)}
-            </ul>
+          <div class="accordion-content hidden" id="acc-benefits">
+            <TimelineList items={benefits} icon="number" />
           </div>
         </div>
       )}
