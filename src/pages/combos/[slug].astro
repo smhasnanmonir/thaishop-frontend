@@ -136,8 +136,14 @@ const galleryImages = [
 
         {/* CTA */}
         <button
-          class="inline-flex items-center justify-center w-full min-h-[52px] sm:h-14 px-6 bg-primary text-on-primary rounded-none font-sans text-[13px] font-bold tracking-[1.2px] uppercase no-underline cursor-pointer transition-colors duration-200 hover:bg-primary-pressed mb-3"
+          class:list={[
+            "inline-flex items-center justify-center w-full min-h-[52px] sm:h-14 px-6 rounded-none font-sans text-[13px] font-bold tracking-[1.2px] uppercase no-underline cursor-pointer transition-colors duration-200 mb-3",
+            combo.comboProducts.every((cp) => !cp.product.stock)
+              ? "bg-mute text-on-primary opacity-60 cursor-not-allowed"
+              : "bg-primary text-on-primary hover:bg-primary-pressed",
+          ]}
           id="add-bundle-to-cart"
+          disabled={combo.comboProducts.every((cp) => !cp.product.stock)}
           data-products={JSON.stringify(combo.comboProducts.map((cp) => ({
             productId: cp.productId,
             name: cp.product.name,
@@ -145,6 +151,7 @@ const galleryImages = [
             image: cp.product.card_photo || cp.product.img || "",
             slug: cp.product.slug,
             quantity: cp.quantity,
+            stock: cp.product.stock,
           })))}
         >
           Add All to Cart — {formatPrice(combo.price)}
@@ -219,21 +226,26 @@ const galleryImages = [
 
       import("../../lib/cart").then(({ addItem }) => {
         const products = JSON.parse(raw) as Array<{
-          productId: number; name: string; price: number; image: string; slug: string; quantity: number;
+          productId: number; name: string; price: number; image: string; slug: string; quantity: number; stock: boolean;
         }>;
 
-        products.forEach((p) => addItem(p));
+        const inStock = products.filter((p) => p.stock);
+        if (inStock.length === 0) return;
 
-        // success feedback
+        inStock.forEach((p) => addItem({
+          productId: p.productId, name: p.name, price: p.price, image: p.image, slug: p.slug, quantity: p.quantity,
+        }));
+
         const orig = addBtn.textContent;
-        addBtn.textContent = "✓ Added to Cart";
+        const skipped = products.length - inStock.length;
+        addBtn.textContent = skipped > 0 ? `✓ Added ${inStock.length} items (${skipped} out of stock)` : "✓ Added to Cart";
         addBtn.classList.remove("bg-primary", "hover:bg-primary-pressed");
         addBtn.classList.add("bg-success-deep", "hover:bg-success-deep");
         setTimeout(() => {
           addBtn.textContent = orig;
           addBtn.classList.remove("bg-success-deep", "hover:bg-success-deep");
           addBtn.classList.add("bg-primary", "hover:bg-primary-pressed");
-        }, 2000);
+        }, 3000);
 
         window.dispatchEvent(new CustomEvent("toggle-cart-drawer", { detail: { open: true } }));
       });

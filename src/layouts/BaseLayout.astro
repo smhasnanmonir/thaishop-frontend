@@ -113,6 +113,7 @@ const canonicalUrl = new URL(Astro.url.pathname, "https://tokbd.com").toString()
           const productId = parseInt(detail.productId);
           const quantity = parseInt(detail.quantity) || 1;
           if (Number.isNaN(productId)) return;
+          if (detail.stock === false) return;
 
           addItem({
             productId,
@@ -127,14 +128,16 @@ const canonicalUrl = new URL(Astro.url.pathname, "https://tokbd.com").toString()
           showSuccess(detail.name || "", parseFloat(detail.price) || 0, detail.image || "");
         });
 
-        // Delegate click for any [data-add-to-cart] button
-        document.addEventListener("click", (e: Event) => {
-          const btn = (e.target as HTMLElement).closest<HTMLElement>("[data-add-to-cart]");
-          if (!btn) return;
-          e.preventDefault();
-          const productId = btn.getAttribute("data-id");
-          if (!productId) return;
-          window.dispatchEvent(
+          // Delegate click for any [data-add-to-cart] button
+          document.addEventListener("click", (e: Event) => {
+            const btn = (e.target as HTMLElement).closest<HTMLElement>("[data-add-to-cart]");
+            if (!btn) return;
+            e.preventDefault();
+            const productId = btn.getAttribute("data-id");
+            if (!productId) return;
+            const stock = btn.getAttribute("data-stock");
+            if (stock === "false") return;
+            window.dispatchEvent(
             new CustomEvent("add-to-cart-action", {
               detail: {
                 productId,

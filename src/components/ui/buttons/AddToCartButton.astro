@@ -13,6 +13,7 @@ interface Props {
   quantity?: number;
   fullWidth?: boolean;
   disabled?: boolean;
+  stock?: boolean;
   id?: string;
 }
 
@@ -25,6 +26,7 @@ const {
   quantity = 1,
   fullWidth = true,
   disabled = false,
+  stock = true,
   id,
 } = Astro.props;
 ---
@@ -43,7 +45,8 @@ const {
   data-img={image}
   data-slug={slug}
   data-qty={quantity}
-  disabled={disabled}
+  data-stock={stock}
+  disabled={disabled || !stock}
   aria-label={`Add ${name} to bag`}
 >
   <svg class="hidden sm:block shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">

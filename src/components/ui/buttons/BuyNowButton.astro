@@ -13,6 +13,7 @@ interface Props {
   quantity?: number;
   fullWidth?: boolean;
   disabled?: boolean;
+  stock?: boolean;
   id?: string;
 }
 
@@ -25,6 +26,7 @@ const {
   quantity = 1,
   fullWidth = true,
   disabled = false,
+  stock = true,
   id,
 } = Astro.props;
 ---
@@ -43,7 +45,8 @@ const {
   data-img={image}
   data-slug={slug}
   data-qty={quantity}
-  disabled={disabled}
+  data-stock={stock}
+  disabled={disabled || !stock}
   aria-label={`Buy ${name} now`}
 >
   Buy Now
@@ -57,6 +60,8 @@ const {
   document.addEventListener('click', (e) => {
     const btn = (e.target as HTMLElement).closest('[data-buy-now]') as HTMLElement | null;
     if (!btn || btn.hasAttribute('disabled')) return;
+    const stock = btn.getAttribute('data-stock');
+    if (stock === 'false') return;
     e.preventDefault();
 
     const STORAGE_KEY = 'tok_cart';
